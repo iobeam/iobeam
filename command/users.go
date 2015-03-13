@@ -91,11 +91,13 @@ func createUser(c *Command, ctx *Context) error {
 }
 
 type GetUserData struct {
-	UserId requiredUint64 `json:"user_id"`
+	UserId   uint64 `json:"user_id"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
 }
 
 func (u *GetUserData) IsValid() bool {
-	return u.UserId.IsValid()
+	return u.UserId != 0 || len(u.Email) > 0 || len(u.Username) > 0
 }
 
 func newGetUserCmd() (*Command) {
@@ -105,13 +107,15 @@ func newGetUserCmd() (*Command) {
 	cmd := &Command {
 		Name: "get",
 		ApiPath: "/v1/users",
-		Usage: "get user",
+		Usage: "get user information (requires one of userId, email, or username)",
 		Data: &user,
 		Flags: flag.NewFlagSet("get", flag.ExitOnError),		
 		Action: getUser,
 	}
 
-	cmd.Flags.Var(&user.UserId, "userId", "The ID of the user to query (REQUIRED)")
+	cmd.Flags.Uint64Var(&user.UserId, "userId", 0, "The ID of the user to query")
+	cmd.Flags.StringVar(&user.Email, "email", "", "The email of the user to query")
+	cmd.Flags.StringVar(&user.Username, "username", "", "The username of the user to query")
 	
 	return cmd
 }
@@ -119,17 +123,24 @@ func newGetUserCmd() (*Command) {
 func getUser(c *Command, ctx *Context) error {
 
 	u := c.Data.(*GetUserData)
+
+	req := ctx.Client.Get(c.ApiPath)
 	
-	rsp, err := ctx.Client.
-		Get(c.ApiPath + "/" + strconv.FormatUint(*u.UserId.v, 10)).
-		Expect(200).
-		Execute();
+	if u.UserId != 0 {
+		req = ctx.Client.Get(c.ApiPath + "/" + strconv.FormatUint(u.UserId, 10))
+	} else if len(u.Email) > 0 {
+		req.Param("email", u.Email)
+	} else if len(u.Username) > 0 {
+		req.Param("name", u.Username)
+	}
+
+	rsp, err := req.Expect(200).Execute();
 	
 	if err != nil {
 		return err
 	}
 
-	userData := new(struct {
+	user := new(struct {
 		UserId     uint64 `json:"user_id"`
 		Username   string `json:"username"`
 		Email      string `json:"email"`
@@ -137,9 +148,22 @@ func getUser(c *Command, ctx *Context) error {
 		LastName   string `json:"last_name"`
 	})
 	
-	rsp.Read(userData)
+	err = rsp.Read(user)
 
-	// TODO: print user data
+	if err != nil {
+		return err
+	}
+		
+	fmt.Printf("User ID: %v\n" +
+		"Username: %v\n" +
+		"Email: %v\n" +
+		"First name: %v\n" +
+		"Last name: %v\n",
+		user.UserId,
+		user.Username,
+		user.Email,
+		user.FirstName,
+		user.LastName)
 	
 	return nil
 }

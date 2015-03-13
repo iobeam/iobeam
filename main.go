@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"flag"
-	"watchvast.com/cerebctl/command"
-	"watchvast.com/cerebctl/client"
+	"cerebriq.com/cerebctl/command"
+	"cerebriq.com/cerebctl/client"
 )
 
 type Arguments struct {

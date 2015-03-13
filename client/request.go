@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"strconv"
 	"errors"
+	"io"
 )
 
 type basicAuth struct {
@@ -83,13 +84,19 @@ func (r *Request) Expect(statusCode int) *Request {
 
 func (r *Request) Execute() (*Response, error) {
 
-	body, err := json.Marshal(r.body)
+	var reader io.Reader = nil
+	
+	if r.body != nil {
+		body, err := json.Marshal(r.body)
 
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(r.method, r.client.url + r.apiCall, bytes.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+		reader = bytes.NewReader(body)
+	} 
+			
+	req, err := http.NewRequest(r.method,
+		r.client.url + r.apiCall, reader)
 
 	if err != nil {
 		return nil, err

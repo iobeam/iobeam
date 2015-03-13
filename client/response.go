@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"encoding/json"
 	"errors"
+//	"io/ioutil"
+//	"fmt"
 )
 
 type Response struct {
@@ -20,6 +22,8 @@ type RestError struct {
 
 func (r *Response) Read(into interface{}) error {
 	defer r.httpResponse.Body.Close()
+	//content, _ := ioutil.ReadAll(r.httpResponse.Body)
+	//fmt.Printf("body=%s\n", string(content))
 	return json.NewDecoder(r.httpResponse.Body).Decode(&into)
 }
 

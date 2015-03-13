@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"flag"
 	"errors"
-	"watchvast.com/cerebctl/client"
+	"cerebriq.com/cerebctl/client"
 )
 
 type Context struct {
@@ -30,7 +30,8 @@ type Command struct {
 func (c *Command) PrintUsage() {
 
 	if c.SubCommands != nil {
-		fmt.Fprintf(os.Stderr, "Usage: %s COMMAND [FLAGS]\n", c.Name)
+		fmt.Fprintf(os.Stderr, "Usage: %s COMMAND [FLAGS]\n\n", c.Name)
+		fmt.Fprintf(os.Stderr, "%s\n", c.Usage)
 
 		fmt.Fprint(os.Stderr, "\nAvailable Commands:\n")
 
@@ -39,7 +40,8 @@ func (c *Command) PrintUsage() {
 				v.Name, v.Usage)
 		}
 	} else {
-		fmt.Fprintf(os.Stderr, "Usage: %s [FLAGS]\n", c.Name)
+		fmt.Fprintf(os.Stderr, "Usage: %s [FLAGS]\n\n", c.Name)
+		fmt.Fprintf(os.Stderr, "%s\n", c.Usage)
 	}
 
 	if c.Flags != nil {

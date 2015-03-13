@@ -1,7 +1,7 @@
 package command
 
 import (
-	"watchvast.com/cerebctl/client"
+	"cerebriq.com/cerebctl/client"
 	"fmt"
 	"flag"
 )
