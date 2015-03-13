@@ -90,5 +90,6 @@ func (c *Command) ParseFlags(ctx *Context) {
 	if c.Flags != nil {
 		//fmt.Println("Parsing flags for command", c.Name, "arr", ctx.Args[ctx.Index:])
 		c.Flags.Parse(ctx.Args[ctx.Index:])
+		ctx.Index += c.Flags.NFlag()
 	}
 }

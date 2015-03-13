@@ -45,7 +45,7 @@ func newCreateUserCmd() (*Command) {
 		ApiPath: "/v1/users",
 		Usage: "create user",
 		Data: &user,
-		Flags: flag.NewFlagSet("create", flag.ExitOnError),		
+		Flags: flag.NewFlagSet("create", flag.ExitOnError),	
 		Action: createUser,
 	}
 

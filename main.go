@@ -15,22 +15,24 @@ type Arguments struct {
 	Password *string
 }
 
-var (
-	cmd = &command.Command {
+func main() {
+	cmd := &command.Command {
 		Name: os.Args[0],
-		Usage: "IoT client",
+		Usage: "CereBriq Command-Line Interface",
+		Flags: flag.NewFlagSet("cerebriq", flag.ExitOnError),	
 		SubCommands: command.Mux {
 			"user": command.NewUsersCommand(),
 			"token": command.NewTokensCommand(),
 		},
 	}
-)
 
-
-func main() {
+	var apiServer string
+	
+	cmd.Flags.StringVar(&apiServer, "server",
+		"http://localhost:8080", "API server URI")
 
 	ctx := &command.Context {
-		Client: client.NewClient("http://localhost:8080", "foo", "bar"),
+		Client: client.NewClient(&apiServer, "foo", "bar"),
 		Args: os.Args,
 		Index: 0,
 	}

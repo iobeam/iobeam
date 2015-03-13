@@ -6,14 +6,14 @@ import (
 
 type Client struct {
 	httpClient  *http.Client 
-	url string
+	url *string
 	username string
 	password string
 	authToken string
 	userAgent string
 }
 
-func NewClient(target string, username string, password string) (*Client) {
+func NewClient(target *string, username string, password string) (*Client) {
 
 	client := Client {
 		httpClient: &http.Client {},

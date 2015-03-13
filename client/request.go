@@ -96,7 +96,7 @@ func (r *Request) Execute() (*Response, error) {
 	} 
 			
 	req, err := http.NewRequest(r.method,
-		r.client.url + r.apiCall, reader)
+		*r.client.url + r.apiCall, reader)
 
 	if err != nil {
 		return nil, err
@@ -133,7 +133,8 @@ func (r *Request) Execute() (*Response, error) {
 	}
 
 	// Check if we got the status code we expected
-	if r.expectedStatusCode != nil && *r.expectedStatusCode != httpRsp.StatusCode {
+	if r.expectedStatusCode != nil &&
+		*r.expectedStatusCode != httpRsp.StatusCode {
 
 		// Read error message if any
 		errorMsg, err := rsp.ReadError()
