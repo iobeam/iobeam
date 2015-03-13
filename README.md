@@ -1,8 +1,14 @@
-# CereBriq Command-Line Client #
+# CereBriq Command-line Interface #
 
-A simple command-line client for the CereBriq API.
+A command-line interface (CLI) for the CereBriq API.
+
 
 ## Installation ##
 
-    go get bitbucket.org/440-labs/cerebctl
+Install Go, if not already installed (e.g., 'brew install go').
 
+    $ mkdir $GOPATH/src/cerebriq.com
+    $ cd $GOPATH/src/cerebriq.com
+    $ git clone git@bitbucket.org:enordstr/cerebctl.git
+    $ cd cerebctl && go install
+    
