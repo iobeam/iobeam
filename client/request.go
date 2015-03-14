@@ -15,12 +15,16 @@ type basicAuth struct {
 	password string
 }
 
+type ResponseBodyHandler func(responseBody interface{}) error
+
 type Request struct {
 	client *Client
 	apiCall string
 	method string
 	headers http.Header
 	body interface{}
+	responseBody interface{}
+	handler ResponseBodyHandler
 	parameters url.Values
 	auth *basicAuth
 	expectedStatusCode *int
@@ -79,6 +83,16 @@ func (r *Request) BasicAuth(username string, password string) *Request {
 
 func (r *Request) Expect(statusCode int) *Request {
 	r.expectedStatusCode = &statusCode
+	return r
+}
+
+func (r *Request) ResponseBody(content interface{}) *Request {
+	r.responseBody = content
+	return r
+}
+
+func (r *Request) ResponseBodyHandler(handler ResponseBodyHandler) *Request {
+	r.handler = handler
 	return r
 }
 
@@ -145,6 +159,18 @@ func (r *Request) Execute() (*Response, error) {
 			err = errors.New("Error: " + errorMsg.Errors[0].Message)
 		}
 		return rsp, err
+	}
+
+	if r.responseBody != nil {
+		err = rsp.Read(r.responseBody)
+
+		if err != nil {
+			return rsp, err
+		}
+
+		if r.handler != nil {
+			err = r.handler(r.responseBody)
+		}
 	}
 
 	return rsp, err

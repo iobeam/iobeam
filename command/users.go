@@ -7,7 +7,7 @@ import (
 )
 
 
-type CreateUserData struct {
+type createUserData struct {
 	Email         requiredString `json:"email"`
 	Password      requiredString `json:"password"`
 	Username      string `json:"username"`
@@ -19,7 +19,7 @@ type CreateUserData struct {
 	passwordIsSet bool
 }
 
-func (u *CreateUserData) IsValid() bool {
+func (u *createUserData) IsValid() bool {
 	return u.Email.IsValid() && u.Password.IsValid()
 }
 
@@ -38,7 +38,7 @@ func NewUsersCommand() (*Command) {
 
 func newCreateUserCmd() (*Command) {
 
-	user := CreateUserData{}
+	user := createUserData{}
 	
 	cmd := &Command {
 		Name: "create",
@@ -61,48 +61,42 @@ func newCreateUserCmd() (*Command) {
 
 func createUser(c *Command, ctx *Context) error {
 
-	u := c.Data.(*CreateUserData)
-	
-	rsp, err := ctx.Client.
-		Post(c.ApiPath).
-		Body(&u).
-		Expect(201).
-		Execute();
-
-	if err != nil {
-		return err
-	}
+	u := c.Data.(*createUserData)
 
 	userData := new(struct {
 		UserId     uint64 `json:"user_id"`
 	})
-
-	err = rsp.Read(userData)
-
-	if err != nil {
-		return err
-	}
- 
-	fmt.Printf("The new user ID for %s is %d\n",
-		u.Email.String(),
-		userData.UserId)
 	
-	return nil
+	_, err := ctx.Client.
+		Post(c.ApiPath).
+		Body(&u).
+		Expect(201).
+		ResponseBody(userData).
+		ResponseBodyHandler(func(interface{}) error {
+		 
+		fmt.Printf("The new user ID for %s is %d\n",
+			u.Email.String(),
+			userData.UserId)
+		
+		return nil
+	}).Execute();
+		
+	return err
 }
 
-type GetUserData struct {
+type getUserData struct {
 	UserId   uint64 `json:"user_id"`
 	Email    string `json:"email"`
 	Username string `json:"username"`
 }
 
-func (u *GetUserData) IsValid() bool {
+func (u *getUserData) IsValid() bool {
 	return u.UserId != 0 || len(u.Email) > 0 || len(u.Username) > 0
 }
 
 func newGetUserCmd() (*Command) {
 
-	user := GetUserData{}
+	user := getUserData{}
 	
 	cmd := &Command {
 		Name: "get",
@@ -122,7 +116,7 @@ func newGetUserCmd() (*Command) {
 
 func getUser(c *Command, ctx *Context) error {
 
-	u := c.Data.(*GetUserData)
+	u := c.Data.(*getUserData)
 
 	req := ctx.Client.Get(c.ApiPath)
 	
@@ -134,12 +128,6 @@ func getUser(c *Command, ctx *Context) error {
 		req.Param("name", u.Username)
 	}
 
-	rsp, err := req.Expect(200).Execute();
-	
-	if err != nil {
-		return err
-	}
-
 	user := new(struct {
 		UserId     uint64 `json:"user_id"`
 		Username   string `json:"username"`
@@ -147,23 +135,24 @@ func getUser(c *Command, ctx *Context) error {
 		FirstName  string `json:"first_name"`
 		LastName   string `json:"last_name"`
 	})
-	
-	err = rsp.Read(user)
 
-	if err != nil {
-		return err
-	}
-		
-	fmt.Printf("User ID: %v\n" +
-		"Username: %v\n" +
-		"Email: %v\n" +
-		"First name: %v\n" +
-		"Last name: %v\n",
-		user.UserId,
-		user.Username,
-		user.Email,
-		user.FirstName,
-		user.LastName)
-	
-	return nil
+	_, err := req.
+		Expect(200).
+		ResponseBody(user).
+		ResponseBodyHandler(func(interface{}) error {
+
+		fmt.Printf("User ID: %v\n" +
+			"Username: %v\n" +
+			"Email: %v\n" +
+			"First name: %v\n" +
+			"Last name: %v\n",
+			user.UserId,
+			user.Username,
+			user.Email,
+			user.FirstName,
+			user.LastName);
+		return nil
+	}).Execute();
+
+	return err
 }

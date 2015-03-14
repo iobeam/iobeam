@@ -23,6 +23,7 @@ func main() {
 		SubCommands: command.Mux {
 			"user": command.NewUsersCommand(),
 			"token": command.NewTokensCommand(),
+			"project": command.NewProjectsCommand(),
 		},
 	}
 

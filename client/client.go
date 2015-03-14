@@ -41,4 +41,3 @@ func (client *Client) Put(apiCall string) (*Request) {
 func (client *Client) Delete(apiCall string) (*Request) {
 	return NewRequest(client, "DELETE", apiCall)
 }
-

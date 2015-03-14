@@ -49,34 +49,27 @@ func newGetUserTokenCmd() (*Command) {
 func getUserToken(c *Command, ctx *Context) error {
 
 	t := c.Data.(*tokenRequestData)
-	
-	rsp, err := ctx.Client.
+
+	_, err := ctx.Client.
 		Get(c.ApiPath).
 		BasicAuth(t.username.String(), t.password.String()).
 		Expect(200).
-		Execute();
+		ResponseBody(new(client.AuthToken)).
+		ResponseBodyHandler(func(token interface{}) error {
+
+		authToken := token.(*client.AuthToken)
+		err := authToken.Save()
+
+		if err != nil {
+			fmt.Printf("Could not save token: %s\n", err)
+		}
 	
-	if err != nil {
+		fmt.Printf("%s\n", authToken.Token)
+
 		return err
-	} 
-
-	authToken := new(client.AuthToken)
+	}).Execute();
 	
-	err = rsp.Read(authToken)
-	
-	if err != nil {
-		return err
-	}
-
-	err = authToken.Save()
-
-	if err != nil {
-		fmt.Printf("Could not save token: %s\n", err)
-	}
-	
-	fmt.Printf("%s\n", authToken.Token)
-	
-	return nil
+	return err
 }
 
 
