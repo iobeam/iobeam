@@ -6,33 +6,34 @@ import (
 	"flag"
 )
 
-func NewTokensCommand() (*Command) {
+func NewTokensCommand() *Command {
 	cmd := &Command {
 		Name: "token",
-		Usage: "Get new user or device tokens",
+		Usage: "Get token for user or device",
 		SubCommands: Mux {
-			"get": newGetUserTokenCmd(),
+			"user": newGetUserTokenCmd(),
+			"proj": newGetProjectTokenCmd(),
 		},
 	}
 
 	return cmd
 }
 
-type tokenRequestData struct {
+type basicAuthData struct {
 	username requiredString
 	password requiredString
 }
 
-func (t *tokenRequestData) IsValid() bool {
+func (t *basicAuthData) IsValid() bool {
 	return t.username.IsValid() && t.password.IsValid()
 }
 
-func newGetUserTokenCmd() (*Command) {
+func newGetUserTokenCmd() *Command {
 
-	t := new(tokenRequestData)
+	t := new(basicAuthData)
 	
 	cmd := &Command {
-		Name: "get",
+		Name: "user",
 		ApiPath: "/v1/tokens/user",
 		Usage: "get a new user token",
 		Data: t,
@@ -48,7 +49,7 @@ func newGetUserTokenCmd() (*Command) {
 
 func getUserToken(c *Command, ctx *Context) error {
 
-	t := c.Data.(*tokenRequestData)
+	t := c.Data.(*basicAuthData)
 
 	_, err := ctx.Client.
 		Get(c.ApiPath).
@@ -72,4 +73,76 @@ func getUserToken(c *Command, ctx *Context) error {
 	return err
 }
 
+type projectPermissions struct {
+	projectId   requiredUint64
+	read        bool
+	write       bool
+	admin       bool
+}
 
+func (p *projectPermissions) IsValid() bool {
+	return p.projectId.IsValid()
+}
+	
+func newGetProjectTokenCmd() *Command {
+
+	p := new(projectPermissions)
+	
+	cmd := &Command {
+		Name: "proj",
+		ApiPath: "/v1/tokens/project",
+		Usage: "get a new project token",
+		Data: p,
+		Flags: flag.NewFlagSet("tokens", flag.ExitOnError),		
+		Action: getProjectToken,
+	}
+
+	cmd.Flags.Var(&p.projectId, "projectId", "The project ID (REQUIRED)")
+	cmd.Flags.BoolVar(&p.read, "read", false, "Read permission")
+	cmd.Flags.BoolVar(&p.write, "write", false, "Write permission")
+	cmd.Flags.BoolVar(&p.admin, "admin", false, "Admin permissions")
+
+	return cmd
+}
+
+func getProjectToken(c *Command, ctx *Context) error {
+
+	p := c.Data.(*projectPermissions)
+
+	type projectToken struct {
+		Token       string
+		Expires     string
+		ProjectId   uint64 `json:project_id`
+		Read        bool
+		Write       bool
+		Admin       bool
+	}
+
+	_, err := ctx.Client.
+		Get(c.ApiPath).
+		Param("project_id", p.projectId.String()).
+		ParamBool("read", p.read).		
+		ParamBool("write", p.write).		
+		ParamBool("admin", p.admin).	
+		Expect(200).
+		ResponseBody(new(projectToken)).
+		ResponseBodyHandler(func(token interface{}) error {
+
+		projToken := token.(*projectToken)
+		fmt.Printf("%4v: %v\n%4v:\n  %-6v: %v\n  %-6v: %v\n  %-6v: %v\n%v\n",
+			"Expires",
+			projToken.Expires,
+			"Permissions",
+			"READ",
+			projToken.Read,
+			"WRITE",
+			projToken.Write,
+			"ADMIN",
+			projToken.Admin,
+			projToken.Token)
+
+		return nil
+	}).Execute();
+	
+	return err
+}

@@ -48,6 +48,11 @@ func (r *Request) Param(name string, value string) *Request {
 	return r
 }
 
+func (r *Request) ParamBool(name string, value bool) *Request {
+	r.parameters.Add(name, strconv.FormatBool(value))
+	return r
+}
+
 func (r *Request) ParamInt(name string, value int) *Request {
 	r.parameters.Add(name, strconv.Itoa(value))
 	return r

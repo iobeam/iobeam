@@ -17,6 +17,8 @@ type Context struct {
 
 type Mux map[string]*Command
 
+type CommandAction func(*Command, *Context) (error)
+
 type Command struct {
 	Name string
 	Usage string
@@ -24,7 +26,7 @@ type Command struct {
 	Flags *flag.FlagSet
 	SubCommands Mux
 	Data Data
-	Action func(*Command, *Context) (error)
+	Action CommandAction
 }
 
 func (c *Command) PrintUsage() {
