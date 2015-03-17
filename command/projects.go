@@ -35,7 +35,8 @@ func NewProjectsCommand() *Command {
 			"list": newListProjectsCmd(),
 			"get": newGetProjectCmd(),
 			"create": newCreateProjectCmd(),
-			"update": newUpdateProjectCmd(),			
+			"update": newUpdateProjectCmd(),
+			"permissions": newProjectPermissionsCmd(),
 		},
 	}
 
@@ -267,5 +268,79 @@ func listProjects(c *Command, ctx *Context) error {
 		return nil
 	}).Execute()
 
+	return err
+}
+
+type permissionsData struct {
+	projectId uint64
+}
+
+func (p *permissionsData) IsValid() bool {
+	return p.projectId != 0
+}
+
+func newProjectPermissionsCmd() *Command {
+
+	p := new(permissionsData)
+	
+	cmd := &Command {
+		Name: "permissions",
+		ApiPath: "/v1/projects/%v/permissions",
+		Usage: "get project permissions",
+		Data: p,
+		Flags: flag.NewFlagSet("permissions", flag.ExitOnError),
+		Action: getProjectPermissions,
+	}
+
+	cmd.Flags.Uint64Var(&p.projectId, "projectId", 0, "The project ID")
+
+	return cmd
+}
+
+func getProjectPermissions(c *Command, ctx *Context) error {
+
+	p := c.Data.(*permissionsData)
+
+	type permissionsResult struct {
+		Permissions struct {
+			Read  []struct { UserId uint64 `json:"user_id"` }
+			Write []struct { UserId uint64 `json:"user_id"` }
+			Admin []struct { UserId uint64 `json:"user_id"` }
+		}
+	}
+	
+	_, err := ctx.Client.
+		Get(fmt.Sprintf(c.ApiPath, strconv.FormatUint(p.projectId, 10))).
+		Expect(200).
+		ResponseBody(new(permissionsResult)).
+		ResponseBodyHandler(func(body interface{}) error {
+
+		result := body.(*permissionsResult)
+
+		fmt.Printf("%10v %-6v", "Permission", "UserIds")
+
+		fmt.Printf("\n%10v ", "READ")
+
+		for _, r := range(result.Permissions.Read) {
+			fmt.Printf("%v ", r.UserId)
+		}
+
+		fmt.Printf("\n%10v ", "WRITE")
+
+		for _, w := range(result.Permissions.Write) {
+			fmt.Printf("%v ", w.UserId)
+		}
+
+		fmt.Printf("\n%10v ", "ADMIN")
+
+		for _, a := range(result.Permissions.Admin) {
+			fmt.Printf("%v ", a.UserId)
+		}
+
+		fmt.Printf("\n")
+		
+		return nil
+	}).Execute()
+	
 	return err
 }

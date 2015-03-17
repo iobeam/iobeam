@@ -143,9 +143,7 @@ func (r *Request) Execute() (*Response, error) {
 	
 	httpRsp, err := r.client.httpClient.Do(req)
 
-	rsp := &Response{
-		httpResponse: httpRsp,
-	}
+	rsp := NewResponse(httpRsp)
 	
 	if err != nil {
 		return rsp, err

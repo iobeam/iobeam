@@ -4,12 +4,14 @@ import (
 	"net/http"
 	"encoding/json"
 	"errors"
-//	"io/ioutil"
-//	"fmt"
 )
+
+
+type ResponseBodyReader func(*Response, interface{}) error
 
 type Response struct {
 	httpResponse *http.Response
+	reader ResponseBodyReader // Override for testing
 }
 
 type RestError struct {
@@ -20,11 +22,20 @@ type RestError struct {
 	}
 }
 
-func (r *Response) Read(into interface{}) error {
+func NewResponse(http *http.Response) *Response {
+	return &Response{
+		httpResponse: http,
+		reader: defaultResponseBodyReader,
+	}
+}
+
+func defaultResponseBodyReader(r *Response, into interface{}) error {
 	defer r.httpResponse.Body.Close()
-	//content, _ := ioutil.ReadAll(r.httpResponse.Body)
-	//fmt.Printf("body=%s\n", string(content))
-	return json.NewDecoder(r.httpResponse.Body).Decode(&into)
+	return json.NewDecoder(r.httpResponse.Body).Decode(&into)	
+}
+
+func (r *Response) Read(into interface{}) error {
+	return r.reader(r, into)
 }
 
 func (r *Response) Http() *http.Response {
