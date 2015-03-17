@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"flag"
 	"errors"
-	"cerebriq.com/cerebctl/client"
+	"beam.io/beam/client"
 )
 
 type Context struct {

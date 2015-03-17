@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"flag"
-	"cerebriq.com/cerebctl/command"
-	"cerebriq.com/cerebctl/client"
+	"beam.io/beam/command"
+	"beam.io/beam/client"
 )
 
 type Arguments struct {
@@ -18,7 +18,7 @@ type Arguments struct {
 func main() {
 	cmd := &command.Command {
 		Name: os.Args[0],
-		Usage: "CereBriq Command-Line Interface",
+		Usage: "Beam Command-Line Interface",
 		Flags: flag.NewFlagSet("cerebriq", flag.ExitOnError),	
 		SubCommands: command.Mux {
 			"user": command.NewUsersCommand(),

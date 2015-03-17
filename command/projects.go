@@ -1,16 +1,11 @@
 package command
 
 import (
-
-)
-
-import (
 	"fmt"
 	"flag"
 	"strconv"
-	"cerebriq.com/cerebctl/client"
+	"beam.io/beam/client"
 )
-
 
 type projectData struct {
 	ProjectName         requiredString `json:"project_name"`

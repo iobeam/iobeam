@@ -1,7 +1,7 @@
 package command
 
 import (
-	"cerebriq.com/cerebctl/client"
+	"beam.io/beam/client"
 	"fmt"
 	"flag"
 )

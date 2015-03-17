@@ -6,7 +6,6 @@ import (
 	"errors"
 )
 
-
 type ResponseBodyReader func(*Response, interface{}) error
 
 type Response struct {

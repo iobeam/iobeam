@@ -20,7 +20,7 @@ func NewClient(target *string, username string, password string) (*Client) {
 		url: target,
 		username: username,
 		password: password,
-		userAgent: "IOTClient 1.0",
+		userAgent: "Beam 0.1",
 	}
 
 	return &client

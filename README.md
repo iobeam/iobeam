@@ -1,14 +1,14 @@
-# CereBriq Command-line Interface #
+# Beam Command-line Interface #
 
-A command-line interface (CLI) for the CereBriq API.
+A command-line interface (CLI) for the Beam.io API.
 
 
 ## Installation ##
 
 Install Go, if not already installed (e.g., 'brew install go').
 
-    $ mkdir $GOPATH/src/cerebriq.com
-    $ cd $GOPATH/src/cerebriq.com
-    $ git clone git@bitbucket.org:enordstr/cerebctl.git
+    $ mkdir $GOPATH/src/beam.io
+    $ cd $GOPATH/src/beam.io
+    $ git clone git@bitbucket.org:440-labs/beam.git
     $ cd cerebctl && go install
     

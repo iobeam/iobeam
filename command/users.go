@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"bufio"
 	"os"
-	"cerebriq.com/cerebctl/client"
+	"beam.io/beam/client"
 )
 
 type userData struct {
@@ -220,13 +220,13 @@ func getUser(c *Command, ctx *Context) error {
 		ResponseBody(user).
 		ResponseBodyHandler(func(interface{}) error {
 
-		fmt.Printf("User ID: %v\n" +
-			"Username: %v\n" +
+		fmt.Printf("Username: %v\n" +
+			"User ID: %v\n" +
 			"Email: %v\n" +
 			"First name: %v\n" +
 			"Last name: %v\n",
-			user.UserId,
 			user.Username,
+			user.UserId,
 			user.Email,
 			user.FirstName,
 			user.LastName);
@@ -285,11 +285,11 @@ func searchUsers(c *Command, ctx *Context) error {
 		ResponseBodyHandler(func(interface{}) error {
 
 		for _, u := range(user.Users) {
-			fmt.Printf("\nUser ID: %v\n" +
-				"Username: %v\n" +
+			fmt.Printf("\nUsername: %v\n" +
+				"User ID: %v\n" +
 				"Email: %v\n",
-				u.UserId,
 				u.Username,
+				u.UserId,
 				u.Email)
 			
 		}
