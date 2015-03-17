@@ -10,5 +10,5 @@ Install Go, if not already installed (e.g., 'brew install go').
     $ mkdir $GOPATH/src/beam.io
     $ cd $GOPATH/src/beam.io
     $ git clone git@bitbucket.org:440-labs/beam.git
-    $ cd cerebctl && go install
+    $ cd beam && go install
     
