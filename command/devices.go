@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"flag"
-//	"beam.io/beam/client"
 )
 
 type deviceData struct {
@@ -175,7 +174,7 @@ func newListDevicesCmd() *Command {
 		Usage: "list devices",
 		Data: &device,
 		Flags: flag.NewFlagSet("get", flag.ExitOnError),		
-		Action: getDevice,
+		Action: listDevices,
 	}
 
 	cmd.Flags.Uint64Var(&device.ProjectId, "id", 0, "List devices in this project (REQUIRED)")

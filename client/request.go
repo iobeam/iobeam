@@ -64,8 +64,7 @@ func (r *Request) ParamInt64(name string, value int64) *Request {
 }
 
 func (r *Request) ParamUint(name string, value uint) *Request {
-	r.parameters.Add(name, strconv.FormatUint(uint64(value), 10))
-	return r
+	return r.ParamUint64(name, uint64(value))
 }
 
 func (r *Request) ParamUint64(name string, value uint64) *Request {
@@ -120,7 +119,7 @@ func (r *Request) Execute() (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	req.URL.RawQuery = r.parameters.Encode()
 	req.Header = r.headers
 	req.Header.Add("User-Agent", r.client.userAgent)

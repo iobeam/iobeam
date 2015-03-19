@@ -182,8 +182,7 @@ func newGetUserCmd() *Command {
 	}
 
 	cmd.Flags.Uint64Var(&user.UserId, "id", 0, "The ID of the user to query")
-	cmd.Flags.StringVar(&user.Email, "email", "", "The email of the user to query")
-	cmd.Flags.StringVar(&user.Username, "username", "", "The username of the user to query")
+	cmd.Flags.StringVar(&user.Username, "name", "", "The username or email of the user to query")
 	
 	return cmd
 }
@@ -196,8 +195,6 @@ func getUser(c *Command, ctx *Context) error {
 	
 	if user.UserId != 0 {
 		req = ctx.Client.Get(c.ApiPath + "/" + strconv.FormatUint(user.UserId, 10))
-	} else if len(user.Email) > 0 {
-		req.Param("name", user.Email)
 	} else if len(user.Username) > 0 {
 		req.Param("name", user.Username)
 	} else {
