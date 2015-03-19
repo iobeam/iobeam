@@ -249,5 +249,5 @@ func deleteDevice(c *Command, ctx *Context) error {
 		fmt.Println("Device successfully deleted")
 	}
 	
-	return nil
+	return err
 }
