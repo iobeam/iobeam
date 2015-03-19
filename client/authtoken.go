@@ -22,7 +22,7 @@ func tokenDir() string {
 		return os.TempDir()
 	}
 
-	return user.HomeDir + "/.cerebctl"
+	return user.HomeDir + "/.beam"
 }
 
 func tokenFile() string {

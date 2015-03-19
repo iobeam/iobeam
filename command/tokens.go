@@ -20,12 +20,12 @@ func NewTokensCommand() *Command {
 }
 
 type basicAuthData struct {
-	username requiredString
-	password requiredString
+	username string
+	password string
 }
 
 func (t *basicAuthData) IsValid() bool {
-	return t.username.IsValid() && t.password.IsValid()
+	return len(t.username) > 0 && len(t.password) > 0
 }
 
 func newGetUserTokenCmd() *Command {
@@ -41,8 +41,8 @@ func newGetUserTokenCmd() *Command {
 		Action: getUserToken,
 	}
 
-	cmd.Flags.Var(&t.username, "username", "The username (REQUIRED)")
-	cmd.Flags.Var(&t.password, "password", "The password (REQUIRED)")
+	cmd.Flags.StringVar(&t.username, "username", "", "The username (REQUIRED)")
+	cmd.Flags.StringVar(&t.password, "password", "", "The password (REQUIRED)")
 
 	return cmd
 }
@@ -53,7 +53,7 @@ func getUserToken(c *Command, ctx *Context) error {
 
 	_, err := ctx.Client.
 		Get(c.ApiPath).
-		BasicAuth(t.username.String(), t.password.String()).
+		BasicAuth(t.username, t.password).
 		Expect(200).
 		ResponseBody(new(client.AuthToken)).
 		ResponseBodyHandler(func(token interface{}) error {
@@ -74,14 +74,14 @@ func getUserToken(c *Command, ctx *Context) error {
 }
 
 type projectPermissions struct {
-	projectId   requiredUint64
+	projectId   uint64
 	read        bool
 	write       bool
 	admin       bool
 }
 
 func (p *projectPermissions) IsValid() bool {
-	return p.projectId.IsValid()
+	return p.projectId != 0
 }
 	
 func newGetProjectTokenCmd() *Command {
@@ -97,7 +97,7 @@ func newGetProjectTokenCmd() *Command {
 		Action: getProjectToken,
 	}
 
-	cmd.Flags.Var(&p.projectId, "projectId", "The project ID (REQUIRED)")
+	cmd.Flags.Uint64Var(&p.projectId, "id", 0, "The project ID (REQUIRED)")
 	cmd.Flags.BoolVar(&p.read, "read", false, "Read permission")
 	cmd.Flags.BoolVar(&p.write, "write", false, "Write permission")
 	cmd.Flags.BoolVar(&p.admin, "admin", false, "Admin permissions")
@@ -120,7 +120,7 @@ func getProjectToken(c *Command, ctx *Context) error {
 
 	_, err := ctx.Client.
 		Get(c.ApiPath).
-		Param("project_id", p.projectId.String()).
+		ParamUint64("project_id", p.projectId).
 		ParamBool("read", p.read).		
 		ParamBool("write", p.write).		
 		ParamBool("admin", p.admin).	

@@ -24,6 +24,7 @@ func main() {
 			"user": command.NewUsersCommand(),
 			"token": command.NewTokensCommand(),
 			"project": command.NewProjectsCommand(),
+			"device": command.NewDevicesCommand(),
 		},
 	}
 

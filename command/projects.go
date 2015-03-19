@@ -8,18 +8,23 @@ import (
 )
 
 type projectData struct {
-	ProjectName         requiredString `json:"project_name"`
+	ProjectName   string `json:"project_name"`
+	ProjectId     uint64 `json:"project_id,omitempty"`
 	// private data, not json marshalled
-	projectId           uint64
-	isUpdate            bool
+	isUpdate      bool
+	isGet         bool
+	isPermissions bool
 }
 
 func (u *projectData) IsValid() bool {
-	if u.isUpdate {
-		return u.ProjectName.IsValid() &&
-			u.projectId != 0
+	if u.isUpdate || u.isGet {
+		return len(u.ProjectName) > 0 ||
+			u.ProjectId != 0
+	} else if u.isPermissions {
+		return u.ProjectId != 0
 	}
-	return u.ProjectName.IsValid()
+		
+	return len(u.ProjectName) > 0
 }
 
 func NewProjectsCommand() *Command {
@@ -55,10 +60,10 @@ func newCreateOrUpdateProjectCmd(update bool, name string,
 	}
 
 	if update {
-		cmd.Flags.Uint64Var(&proj.projectId, "projectId", 0,
+		cmd.Flags.Uint64Var(&proj.ProjectId, "id", 0,
 			"The project ID (REQUIRED)")
 	}
-	cmd.Flags.Var(&proj.ProjectName, "name", "The name of the new project")
+	cmd.Flags.StringVar(&proj.ProjectName, "name", "", "The name of the new project")
 
 	return cmd
 }
@@ -73,23 +78,17 @@ func newUpdateProjectCmd() *Command {
 
 func createProject(c *Command, ctx *Context) error {
 
-	u := c.Data.(*projectData)
-
-	type resultData struct {
-		ProjectId     uint64 `json:"project_id"`
-	}
-
 	_, err := ctx.Client.
 		Post(c.ApiPath).
-		Body(&u).
+		Body(c.Data).
 		Expect(201).
-		ResponseBody(new(resultData)).
-		ResponseBodyHandler(func(data interface{}) error {
+		ResponseBody(c.Data).
+		ResponseBodyHandler(func(body interface{}) error {
 
-		projectData := data.(*resultData)
+		project := body.(*projectData)
 		fmt.Printf("The new project ID for %s is %d\n",
-			u.ProjectName.String(),
-			projectData.ProjectId)
+			project.ProjectName,
+			project.ProjectId)
 		return nil
 		
 	}).Execute();
@@ -101,59 +100,55 @@ func updateProject(c *Command, ctx *Context) error {
 
 	u := c.Data.(*projectData)
 
-	_, err := ctx.Client.
-		Patch(c.ApiPath + "/" + strconv.FormatUint(u.projectId, 10)).
-		Body(&u).
+	rsp, err := ctx.Client.
+		Patch(c.ApiPath + "/" + strconv.FormatUint(u.ProjectId, 10)).
+		Body(c.Data).
 		Expect(200).
 		Execute();
 
 	if err == nil {
 		fmt.Println("Project successfully updated")
+	} else if rsp.Http().StatusCode == 204 {
+		fmt.Println("Project not modified")
+		return nil
 	}
 	
 	return err
 }
 
-
-type getProjectsData struct {
-	id   uint64
-	name string 
-}
-
-func (u *getProjectsData) IsValid() bool {
-	return u.id != 0 || len(u.name) > 0
-}
-
 func newGetProjectCmd() *Command {
-	p := getProjectsData{}
 	
+	p := projectData{
+		isGet: true,
+	}
+
 	cmd := &Command {
 		Name: "get",
 		ApiPath: "/v1/projects",
-		Usage: "get information about a given project",
+		Usage: "get information about a project",
 		Data: &p,
 		Flags: flag.NewFlagSet("get", flag.ExitOnError),		
 		Action: getProject,
 	}
 
-	cmd.Flags.Uint64Var(&p.id, "projectId", 0, "The project ID")
-	cmd.Flags.StringVar(&p.name, "name", "", "Project name prefix to search for")
+	cmd.Flags.Uint64Var(&p.ProjectId, "id", 0, "The project ID")
+	cmd.Flags.StringVar(&p.ProjectName, "name", "", "Project name prefix")
 	
 	return cmd
 }
 
 func getProject(c *Command, ctx *Context) error {
 
-	p := c.Data.(*getProjectsData)
+	p := c.Data.(*projectData)
 	var req *client.Request
 	
-	if p.id != 0 {
+	if p.ProjectId != 0 {
 		req = ctx.Client.
-			Get(c.ApiPath + "/" + strconv.FormatUint(p.id, 10))
+			Get(c.ApiPath + "/" + strconv.FormatUint(p.ProjectId, 10))
 	} else {
 		req = ctx.Client.
 			Get(c.ApiPath).
-			Param("name", p.name)
+			Param("name", p.ProjectName)
 	}
 
 	type projectResult struct {
@@ -181,9 +176,11 @@ func getProject(c *Command, ctx *Context) error {
 			result.Created)
 
 		fmt.Printf("READ:  ")
+
 		for _, u := range(result.Permissions.Read) {
 			fmt.Printf("%v ", u.UserId)
 		}
+		
 		fmt.Printf("\nWRITE: ")
 
 		for _, u := range(result.Permissions.Write) {
@@ -195,6 +192,7 @@ func getProject(c *Command, ctx *Context) error {
 		for _, u := range(result.Permissions.Admin) {
 			fmt.Printf("%v ", u.UserId)
 		}
+		
 		fmt.Printf("\n")
 		
 		return nil
@@ -266,35 +264,29 @@ func listProjects(c *Command, ctx *Context) error {
 	return err
 }
 
-type permissionsData struct {
-	projectId uint64
-}
-
-func (p *permissionsData) IsValid() bool {
-	return p.projectId != 0
-}
-
 func newProjectPermissionsCmd() *Command {
 
-	p := new(permissionsData)
+	p := projectData{
+		isPermissions: true,
+	}
 	
 	cmd := &Command {
 		Name: "permissions",
 		ApiPath: "/v1/projects/%v/permissions",
 		Usage: "get project permissions",
-		Data: p,
+		Data: &p,
 		Flags: flag.NewFlagSet("permissions", flag.ExitOnError),
 		Action: getProjectPermissions,
 	}
 
-	cmd.Flags.Uint64Var(&p.projectId, "projectId", 0, "The project ID")
+	cmd.Flags.Uint64Var(&p.ProjectId, "id", 0, "The project ID")
 
 	return cmd
 }
 
 func getProjectPermissions(c *Command, ctx *Context) error {
 
-	p := c.Data.(*permissionsData)
+	p := c.Data.(*projectData)
 
 	type permissionsResult struct {
 		Permissions struct {
@@ -305,7 +297,7 @@ func getProjectPermissions(c *Command, ctx *Context) error {
 	}
 	
 	_, err := ctx.Client.
-		Get(fmt.Sprintf(c.ApiPath, strconv.FormatUint(p.projectId, 10))).
+		Get(fmt.Sprintf(c.ApiPath, strconv.FormatUint(p.ProjectId, 10))).
 		Expect(200).
 		ResponseBody(new(permissionsResult)).
 		ResponseBodyHandler(func(body interface{}) error {

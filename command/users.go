@@ -10,29 +10,35 @@ import (
 )
 
 type userData struct {
-	Email         requiredString `json:"email"`
-	Password      requiredString `json:"password"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	UserId        uint64 `json:"user_id,omitempty"`
 	Username      string `json:"username,omitempty"`
 	Url           string `json:"url,omitempty"`
 	FirstName     string `json:"first_name,omitempty"`
 	LastName      string `json:"last_name,omitempty"`
 	CompanyName   string `json:"company_name,omitempty"`
 	// Private fields, not marshalled into JSON
-	emailIsSet    bool
-	passwordIsSet bool
 	isUpdate      bool
+	isGet         bool
+	isSearch      bool
 }
 
 func (u *userData) IsValid() bool {
 	if u.isUpdate {
-		return u.Email.IsValid() ||
-			u.Password.IsValid() ||
+		return len(u.Email) > 0 ||
+			len(u.Password) > 0 ||
+			len(u.Username) > 0 ||
 			len(u.Url) > 0 ||
 			len(u.FirstName) > 0 ||
 			len(u.LastName) > 0 ||
 			len(u.CompanyName) > 0
+	} else if (u.isGet) {
+		return true
+	} else if (u.isSearch) {
+		return len(u.Username) > 0
 	}
-	return u.Email.IsValid() && u.Password.IsValid()
+	return len(u.Email) > 0 && len(u.Password) > 0
 }
 
 func NewUsersCommand() *Command {
@@ -68,12 +74,12 @@ func newCreateOrUpdateUserCmd(update bool, name string, action CommandAction) *C
 
 	if (update) {
 		apiPath += "/me"
-		flags.StringVar(&user.Username, "username", "",
-			"Username associated with user")
 	}
-	flags.Var(&user.Password, "password", "The user's password" +
+	flags.StringVar(&user.Username, "username", "",
+		"Username associated with user")
+	flags.StringVar(&user.Password, "password", "", "The user's password" +
 		requiredArg(!update))
-	flags.Var(&user.Email, "email", "The user's email address" +
+	flags.StringVar(&user.Email, "email", "", "The user's email address" +
 		requiredArg(!update))
 	flags.StringVar(&user.FirstName, "firstname", "", "The user's first name")
 	flags.StringVar(&user.LastName, "lastname", "", "The user's last name")
@@ -116,7 +122,7 @@ func updateUser(c *Command, ctx *Context) error {
 		Body(c.Data).
 		Expect(200)
 
-	if u.Password.IsValid() {
+	if len(u.Password) > 0 {
 		bio := bufio.NewReader(os.Stdin)
 		// FIXME: do not echo old password
 		fmt.Printf("Enter old password:")
@@ -127,10 +133,14 @@ func updateUser(c *Command, ctx *Context) error {
 		}
 		req.Param("old_password", string(line))
 	}
-	_, err := req.Execute();
-
+	
+	rsp, err := req.Execute();
+	
 	if err == nil {
 		fmt.Println("User successfully updated")
+	} else if rsp.Http().StatusCode == 204 {
+		fmt.Println("User not modified")
+		return nil
 	}
 	
 	return err
@@ -138,22 +148,17 @@ func updateUser(c *Command, ctx *Context) error {
 
 func createUser(c *Command, ctx *Context) error {
 
-	u := c.Data.(*userData)
-
-	userData := new(struct {
-		UserId     uint64 `json:"user_id"`
-	})
-
 	_, err := ctx.Client.
 		Post(c.ApiPath).
-		Body(&u).
+		Body(c.Data).
 		Expect(201).
-		ResponseBody(userData).
-		ResponseBodyHandler(func(interface{}) error {
-		
+		ResponseBody(c.Data).
+		ResponseBodyHandler(func(body interface{}) error {
+
+		u := body.(*userData)
 		fmt.Printf("The new user ID for %s is %d\n",
-			u.Email.String(),
-			userData.UserId)
+			u.Email,
+			u.UserId)
 		
 		return nil
 	}).Execute();
@@ -161,30 +166,22 @@ func createUser(c *Command, ctx *Context) error {
 	return err
 }
 
-type getUserData struct {
-	UserId   uint64 `json:"user_id,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Username string `json:"username,omitempty"`
-}
-
-func (u *getUserData) IsValid() bool {
-	return true
-}
-
 func newGetUserCmd() *Command {
 
-	user := getUserData{}
+	user := userData{
+		isGet: true,
+	}
 	
 	cmd := &Command {
 		Name: "get",
 		ApiPath: "/v1/users",
-		Usage: "get user information (if no user info given, returns authenticated user)",
+		Usage: "get user information",
 		Data: &user,
 		Flags: flag.NewFlagSet("get", flag.ExitOnError),		
 		Action: getUser,
 	}
 
-	cmd.Flags.Uint64Var(&user.UserId, "userId", 0, "The ID of the user to query")
+	cmd.Flags.Uint64Var(&user.UserId, "id", 0, "The ID of the user to query")
 	cmd.Flags.StringVar(&user.Email, "email", "", "The email of the user to query")
 	cmd.Flags.StringVar(&user.Username, "username", "", "The username of the user to query")
 	
@@ -193,31 +190,23 @@ func newGetUserCmd() *Command {
 
 func getUser(c *Command, ctx *Context) error {
 
-	u := c.Data.(*getUserData)
+	user := c.Data.(*userData)
 
 	req := ctx.Client.Get(c.ApiPath)
 	
-	if u.UserId != 0 {
-		req = ctx.Client.Get(c.ApiPath + "/" + strconv.FormatUint(u.UserId, 10))
-	} else if len(u.Email) > 0 {
-		req.Param("name", u.Email)
-	} else if len(u.Username) > 0 {
-		req.Param("name", u.Username)
+	if user.UserId != 0 {
+		req = ctx.Client.Get(c.ApiPath + "/" + strconv.FormatUint(user.UserId, 10))
+	} else if len(user.Email) > 0 {
+		req.Param("name", user.Email)
+	} else if len(user.Username) > 0 {
+		req.Param("name", user.Username)
 	} else {
 		req = ctx.Client.Get(c.ApiPath + "/me")
 	}
 
-	user := new(struct {
-		UserId     uint64 `json:"id"`
-		Username   string `json:"username"`
-		Email      string `json:"email"`
-		FirstName  string `json:"first_name"`
-		LastName   string `json:"last_name"`
-	})
-
 	_, err := req.
 		Expect(200).
-		ResponseBody(user).
+		ResponseBody(c.Data).
 		ResponseBodyHandler(func(interface{}) error {
 
 		fmt.Printf("Username: %v\n" +
@@ -236,28 +225,21 @@ func getUser(c *Command, ctx *Context) error {
 	return err
 }
 
-
-type searchUsersData struct {
-	Username string `json:"username,omitempty"`
-}
-
-func (u *searchUsersData) IsValid() bool {
-	return len(u.Username) > 0
-}
-
 func newSearchUsersCmd() *Command {
 
-	users := searchUsersData{}
+	user := userData{
+		isSearch: true,
+	}
 	
 	cmd := &Command {
 		Name: "search",
 		ApiPath: "/v1/users",
 		Usage: "search for users",
-		Data: &users,
+		Data: &user,
 		Flags: flag.NewFlagSet("get", flag.ExitOnError),		
 		Action: searchUsers,
 	}
-	cmd.Flags.StringVar(&users.Username, "name", "", "The search string")
+	cmd.Flags.StringVar(&user.Username, "name", "", "The search string")
 	
 	return cmd
 }
@@ -265,21 +247,17 @@ func newSearchUsersCmd() *Command {
 
 func searchUsers(c *Command, ctx *Context) error {
 
-	u := c.Data.(*searchUsersData)
-
-	req := ctx.Client.Get(c.ApiPath)
-	
-	req.Param("search", u.Username)
-
 	user := new(struct {
 		Users []struct {
-			UserId     uint64 `json:"id"`
+			UserId     uint64 `json:"user_id"`
 			Username   string `json:"username"`
 			Email      string `json:"email"`
 		}
 	})
-
-	_, err := req.
+	
+	_, err := ctx.Client.
+		Get(c.ApiPath).
+		Param("search", c.Data.(*userData).Username).
 		Expect(200).
 		ResponseBody(user).
 		ResponseBodyHandler(func(interface{}) error {
