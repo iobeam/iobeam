@@ -12,8 +12,8 @@ type AuthToken struct {
 	UserId   uint64 `json:"user_id"`
 }
 
-
 const TOKEN_FILENAME = "token.json"
+const path_separator = string(os.PathSeparator)
 
 func tokenDir() string {
 	user, err := user.Current()
@@ -22,11 +22,11 @@ func tokenDir() string {
 		return os.TempDir()
 	}
 
-	return user.HomeDir + "/.beam"
+	return user.HomeDir + path_separator + ".beam"
 }
 
 func tokenFile() string {
-	return tokenDir() + "/" + TOKEN_FILENAME
+	return tokenDir() + path_separator + TOKEN_FILENAME
 }
 
 func (t *AuthToken) Save() error {
