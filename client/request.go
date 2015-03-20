@@ -133,11 +133,12 @@ func (r *Request) Execute() (*Response, error) {
 	} else {
 		authToken, err := ReadToken()
 
-		if err != nil {
-			return nil, err
+		// If we didn't have a token, just try anyway and let
+		// the API return error if we are not requesting an auth-less
+		// API endpoint
+		if err == nil {
+			req.Header.Add("Authorization", "Bearer " + authToken.Token)
 		}
-
-		req.Header.Add("Authorization", "Bearer " + authToken.Token)
 	}
 	
 	httpRsp, err := r.client.httpClient.Do(req)
@@ -157,7 +158,7 @@ func (r *Request) Execute() (*Response, error) {
 		
 		if err != nil {
 			err = errors.New("Unexpected status code " + httpRsp.Status)
-		} else {
+		} else if len(errorMsg.Errors) > 0 {
 			err = errors.New("Error: " + errorMsg.Errors[0].Message)
 		}
 		return rsp, err
