@@ -1,13 +1,13 @@
 package client
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/url"
 	"bytes"
-	"strconv"
+	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
+	"net/url"
+	"strconv"
 )
 
 type basicAuth struct {
@@ -18,25 +18,26 @@ type basicAuth struct {
 type ResponseBodyHandler func(responseBody interface{}) error
 
 type Request struct {
-	client *Client
-	apiCall string
-	method string
-	headers http.Header
-	body interface{}
-	responseBody interface{}
-	handler ResponseBodyHandler
-	parameters url.Values
-	auth *basicAuth
+	client             *Client
+	apiCall            string
+	method             string
+	headers            http.Header
+	body               interface{}
+	responseBody       interface{}
+	handler            ResponseBodyHandler
+	parameters         url.Values
+	auth               *basicAuth
+	token              *AuthToken
 	expectedStatusCode *int
 }
 
 func NewRequest(client *Client, method string, apiCall string) *Request {
 
 	builder := Request{
-		client: client,
-		method: method,
-		apiCall: apiCall,
-		headers: make(http.Header),
+		client:     client,
+		method:     method,
+		apiCall:    apiCall,
+		headers:    make(http.Header),
 		parameters: make(url.Values),
 	}
 
@@ -85,6 +86,11 @@ func (r *Request) BasicAuth(username string, password string) *Request {
 	return r
 }
 
+func (r *Request) Token(t *AuthToken) *Request {
+	r.token = t
+	return r
+}
+
 func (r *Request) Expect(statusCode int) *Request {
 	r.expectedStatusCode = &statusCode
 	return r
@@ -103,7 +109,7 @@ func (r *Request) ResponseBodyHandler(handler ResponseBodyHandler) *Request {
 func (r *Request) Execute() (*Response, error) {
 
 	var reader io.Reader = nil
-	
+
 	if r.body != nil {
 		body, err := json.Marshal(r.body)
 
@@ -111,10 +117,10 @@ func (r *Request) Execute() (*Response, error) {
 			return nil, err
 		}
 		reader = bytes.NewReader(body)
-	} 
-			
+	}
+
 	req, err := http.NewRequest(r.method,
-		*r.client.url + r.apiCall, reader)
+		*r.client.url+r.apiCall, reader)
 
 	if err != nil {
 		return nil, err
@@ -130,21 +136,23 @@ func (r *Request) Execute() (*Response, error) {
 
 	if r.auth != nil {
 		req.SetBasicAuth(r.auth.username, r.auth.password)
-	} else {
-		authToken, err := ReadToken()
+	} else if r.token != nil {
+		req.Header.Add("Authorization", "Bearer "+r.token.Token)
+	} else { // if all else fails, use user token
+		authToken, err := ReadUserToken()
 
 		// If we didn't have a token, just try anyway and let
 		// the API return error if we are not requesting an auth-less
 		// API endpoint
 		if err == nil {
-			req.Header.Add("Authorization", "Bearer " + authToken.Token)
+			req.Header.Add("Authorization", "Bearer "+authToken.Token)
 		}
 	}
-	
+
 	httpRsp, err := r.client.httpClient.Do(req)
 
 	rsp := NewResponse(httpRsp)
-	
+
 	if err != nil {
 		return rsp, err
 	}
@@ -155,7 +163,7 @@ func (r *Request) Execute() (*Response, error) {
 
 		// Read error message if any
 		errorMsg, err := rsp.ReadError()
-		
+
 		if err != nil {
 			err = errors.New("Unexpected status code " + httpRsp.Status)
 		} else if len(errorMsg.Errors) > 0 {

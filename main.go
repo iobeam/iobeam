@@ -1,42 +1,41 @@
-
 package main
 
 import (
+	"beam.io/beam/client"
+	"beam.io/beam/command"
+	"flag"
 	"fmt"
 	"os"
-	"flag"
-	"beam.io/beam/command"
-	"beam.io/beam/client"
 )
 
 type Arguments struct {
-	Command *string
+	Command  *string
 	Username *string
 	Password *string
 }
 
 func main() {
-	cmd := &command.Command {
-		Name: os.Args[0],
+	cmd := &command.Command{
+		Name:  os.Args[0],
 		Usage: "Beam Command-Line Interface",
-		Flags: flag.NewFlagSet("cerebriq", flag.ExitOnError),	
-		SubCommands: command.Mux {
-			"user": command.NewUsersCommand(),
-			"token": command.NewTokensCommand(),
+		Flags: flag.NewFlagSet("cerebriq", flag.ExitOnError),
+		SubCommands: command.Mux{
+			"user":    command.NewUsersCommand(),
+			"token":   command.NewTokensCommand(),
 			"project": command.NewProjectsCommand(),
-			"device": command.NewDevicesCommand(),
+			"device":  command.NewDevicesCommand(),
 		},
 	}
 
 	var apiServer string
-	
+
 	cmd.Flags.StringVar(&apiServer, "server",
 		"http://localhost:8080", "API server URI")
 
-	ctx := &command.Context {
+	ctx := &command.Context{
 		Client: client.NewClient(&apiServer, "foo", "bar"),
-		Args: os.Args,
-		Index: 0,
+		Args:   os.Args,
+		Index:  0,
 	}
 
 	flag.Usage = func() {

@@ -1,19 +1,24 @@
 package client
 
 import (
-	"os/user"
 	"encoding/json"
 	"os"
+	"os/user"
+	"strconv"
 )
 
 type AuthToken struct {
-	Token    string
-	Expires  string
-	UserId   uint64 `json:"user_id"`
+	Token     string
+	Expires   string
+	UserId    uint64 `json:"user_id,omitempty"`
+	ProjectId uint64 `json:"project_id,omitempty"`
+	Read      bool   `json:",omitempty"`
+	Write     bool   `json:",omitempty"`
+	Admin     bool   `json:",omitempty"`
 }
 
-const TOKEN_FILENAME = "token.json"
-const path_separator = string(os.PathSeparator)
+const userTokenFile = "token.json"
+const pathSeparator = string(os.PathSeparator)
 
 func tokenDir() string {
 	user, err := user.Current()
@@ -22,14 +27,24 @@ func tokenDir() string {
 		return os.TempDir()
 	}
 
-	return user.HomeDir + path_separator + ".beam"
+	return user.HomeDir + pathSeparator + ".beam"
 }
 
-func tokenFile() string {
-	return tokenDir() + path_separator + TOKEN_FILENAME
+func userTokenPath() string {
+	return tokenDir() + pathSeparator + userTokenFile
+}
+
+func projTokenPath(id uint64) string {
+	return tokenDir() + pathSeparator + "proj_" + strconv.FormatUint(id, 10) + ".json"
 }
 
 func (t *AuthToken) Save() error {
+	var tokenPath string
+	if t.ProjectId == 0 {
+		tokenPath = userTokenPath()
+	} else {
+		tokenPath = projTokenPath(t.ProjectId)
+	}
 
 	err := os.MkdirAll(tokenDir(), 0700)
 
@@ -37,20 +52,23 @@ func (t *AuthToken) Save() error {
 		return err
 	}
 
-	file, err := os.OpenFile(tokenFile(), os.O_CREATE|os.O_WRONLY, 0600)
+	_ = os.Remove(tokenPath)
+	// Error only if it does not exist, ignore.
+
+	file, err := os.OpenFile(tokenPath, os.O_CREATE|os.O_WRONLY, 0600)
 
 	if err != nil {
 		return err
 	}
 
 	defer file.Close()
-	
+
 	return json.NewEncoder(file).Encode(t)
 }
 
-func (t *AuthToken) Read() error {
+func (t *AuthToken) read(tokenPath string) error {
 
-	file, err := os.Open(tokenFile())
+	file, err := os.Open(tokenPath)
 
 	if err != nil {
 		return err
@@ -59,14 +77,21 @@ func (t *AuthToken) Read() error {
 	return json.NewDecoder(file).Decode(t)
 }
 
-func ReadToken() (*AuthToken, error) {
+func readToken(tokenPath string) (*AuthToken, error) {
 	t := new(AuthToken)
 
-	err := t.Read()
-
+	err := t.read(tokenPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return t, nil
+	return t, err
+}
+
+func ReadUserToken() (*AuthToken, error) {
+	return readToken(userTokenPath())
+}
+
+func ReadProjToken(id uint64) (*AuthToken, error) {
+	return readToken(projTokenPath(id))
 }
