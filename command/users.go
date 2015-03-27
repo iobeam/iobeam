@@ -46,10 +46,12 @@ func NewUsersCommand() *Command {
 		Name:  "user",
 		Usage: "Create, get, or delete users",
 		SubCommands: Mux{
-			"get":    newGetUserCmd(),
-			"create": newCreateUserCmd(),
-			"update": newUpdateUserCmd(),
-			"search": newSearchUsersCmd(),
+			"get":          newGetUserCmd(),
+			"create":       newCreateUserCmd(),
+			"update":       newUpdateUserCmd(),
+			"search":       newSearchUsersCmd(),
+			"verify-email": newVerifyEmailCmd(),
+			"reset-pw":     newNewPasswordCmd(),
 		},
 	}
 
@@ -269,6 +271,86 @@ func searchUsers(c *Command, ctx *Context) error {
 		}
 		return nil
 	}).Execute()
+
+	return err
+}
+
+type emailData struct {
+	VerifyKey string `json:"verification_key"`
+}
+
+func (e *emailData) IsValid() bool {
+	return len(e.VerifyKey) > 0
+}
+
+func newVerifyEmailCmd() *Command {
+	email := new(emailData)
+
+	cmd := &Command{
+		Name:    "verify-email",
+		ApiPath: "/v1/users/email",
+		Usage:   "verify email",
+		Data:    email,
+		Flags:   flag.NewFlagSet("verify-email", flag.ExitOnError),
+		Action:  verifyEmail,
+	}
+
+	cmd.Flags.StringVar(&email.VerifyKey, "key", "", "Verification key from email")
+
+	return cmd
+}
+
+func verifyEmail(c *Command, ctx *Context) error {
+	_, err := ctx.Client.
+		Post(c.ApiPath).
+		Expect(204).
+		Body(c.Data).
+		Execute()
+
+	if err == nil {
+		fmt.Println("Email successfully verified.")
+	}
+
+	return err
+}
+
+type pwData struct {
+	ResetKey string `json:"reset_key"`
+	Password string `json:"password"`
+}
+
+func (p *pwData) IsValid() bool {
+	return len(p.ResetKey) > 0 && len(p.Password) > 0
+}
+
+func newNewPasswordCmd() *Command {
+	pw := new(pwData)
+
+	cmd := &Command{
+		Name:    "reset-pw",
+		ApiPath: "/v1/users/password",
+		Usage:   "change password",
+		Data:    pw,
+		Flags:   flag.NewFlagSet("reset-pw", flag.ExitOnError),
+		Action:  resetPassword,
+	}
+
+	cmd.Flags.StringVar(&pw.ResetKey, "key", "", "Reset key from email")
+	cmd.Flags.StringVar(&pw.Password, "password", "", "New password")
+
+	return cmd
+}
+
+func resetPassword(c *Command, ctx *Context) error {
+	_, err := ctx.Client.
+		Post(c.ApiPath).
+		Expect(204).
+		Body(c.Data).
+		Execute()
+
+	if err == nil {
+		fmt.Println("Password successfully changed.")
+	}
 
 	return err
 }
