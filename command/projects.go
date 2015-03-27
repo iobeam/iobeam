@@ -1,15 +1,15 @@
 package command
 
 import (
-	"fmt"
-	"flag"
-	"strconv"
 	"beam.io/beam/client"
+	"flag"
+	"fmt"
+	"strconv"
 )
 
 type projectData struct {
-	ProjectName   string `json:"project_name"`
-	ProjectId     uint64 `json:"project_id,omitempty"`
+	ProjectName string `json:"project_name"`
+	ProjectId   uint64 `json:"project_id,omitempty"`
 	// private data, not json marshalled
 	isUpdate      bool
 	isGet         bool
@@ -23,19 +23,19 @@ func (u *projectData) IsValid() bool {
 	} else if u.isPermissions {
 		return u.ProjectId != 0
 	}
-		
+
 	return len(u.ProjectName) > 0
 }
 
 func NewProjectsCommand() *Command {
-	cmd := &Command {
-		Name: "project",
+	cmd := &Command{
+		Name:  "project",
 		Usage: "Create, get, or delete projects",
-		SubCommands: Mux {
-			"list": newListProjectsCmd(),
-			"get": newGetProjectCmd(),
-			"create": newCreateProjectCmd(),
-			"update": newUpdateProjectCmd(),
+		SubCommands: Mux{
+			"list":        newListProjectsCmd(),
+			"get":         newGetProjectCmd(),
+			"create":      newCreateProjectCmd(),
+			"update":      newUpdateProjectCmd(),
 			"permissions": newProjectPermissionsCmd(),
 		},
 	}
@@ -49,14 +49,14 @@ func newCreateOrUpdateProjectCmd(update bool, name string,
 	proj := projectData{
 		isUpdate: update,
 	}
-	
-	cmd := &Command {
-		Name: name,
+
+	cmd := &Command{
+		Name:    name,
 		ApiPath: "/v1/projects",
-		Usage: name + " project",
-		Data: &proj,
-		Flags: flag.NewFlagSet(name, flag.ExitOnError),	
-		Action: action,
+		Usage:   name + " project",
+		Data:    &proj,
+		Flags:   flag.NewFlagSet(name, flag.ExitOnError),
+		Action:  action,
 	}
 
 	if update {
@@ -90,9 +90,9 @@ func createProject(c *Command, ctx *Context) error {
 			project.ProjectName,
 			project.ProjectId)
 		return nil
-		
-	}).Execute();
-	
+
+	}).Execute()
+
 	return err
 }
 
@@ -104,7 +104,7 @@ func updateProject(c *Command, ctx *Context) error {
 		Patch(c.ApiPath + "/" + strconv.FormatUint(u.ProjectId, 10)).
 		Body(c.Data).
 		Expect(200).
-		Execute();
+		Execute()
 
 	if err == nil {
 		fmt.Println("Project successfully updated")
@@ -112,28 +112,28 @@ func updateProject(c *Command, ctx *Context) error {
 		fmt.Println("Project not modified")
 		return nil
 	}
-	
+
 	return err
 }
 
 func newGetProjectCmd() *Command {
-	
+
 	p := projectData{
 		isGet: true,
 	}
 
-	cmd := &Command {
-		Name: "get",
+	cmd := &Command{
+		Name:    "get",
 		ApiPath: "/v1/projects",
-		Usage: "get information about a project",
-		Data: &p,
-		Flags: flag.NewFlagSet("get", flag.ExitOnError),		
-		Action: getProject,
+		Usage:   "get information about a project",
+		Data:    &p,
+		Flags:   flag.NewFlagSet("get", flag.ExitOnError),
+		Action:  getProject,
 	}
 
 	cmd.Flags.Uint64Var(&p.ProjectId, "id", 0, "The project ID")
 	cmd.Flags.StringVar(&p.ProjectName, "name", "", "Project name prefix")
-	
+
 	return cmd
 }
 
@@ -141,7 +141,7 @@ func getProject(c *Command, ctx *Context) error {
 
 	p := c.Data.(*projectData)
 	var req *client.Request
-	
+
 	if p.ProjectId != 0 {
 		req = ctx.Client.
 			Get(c.ApiPath + "/" + strconv.FormatUint(p.ProjectId, 10))
@@ -152,24 +152,30 @@ func getProject(c *Command, ctx *Context) error {
 	}
 
 	type projectResult struct {
-		ProjectId    uint64 `json:"project_id"`
-		ProjectName  string `json:"project_name"`
-		Created      string
+		ProjectId   uint64 `json:"project_id"`
+		ProjectName string `json:"project_name"`
+		Created     string
 		Permissions struct {
-			Admin []struct { UserId uint64 `json:"user_id"` }
-			Read  []struct { UserId uint64 `json:"user_id"` }
-			Write []struct { UserId uint64 `json:"user_id"` }
+			Admin []struct {
+				UserId uint64 `json:"user_id"`
+			}
+			Read []struct {
+				UserId uint64 `json:"user_id"`
+			}
+			Write []struct {
+				UserId uint64 `json:"user_id"`
+			}
 		}
 	}
-	
+
 	_, err := req.
 		Expect(200).
 		ResponseBody(new(projectResult)).
 		ResponseBodyHandler(func(body interface{}) error {
-		
+
 		result := body.(*projectResult)
-		fmt.Printf("ProjectId: %v\n" +
-			"Project name: %v\n" +
+		fmt.Printf("ProjectId: %v\n"+
+			"Project name: %v\n"+
 			"Created: %v\n",
 			result.ProjectId,
 			result.ProjectName,
@@ -177,38 +183,38 @@ func getProject(c *Command, ctx *Context) error {
 
 		fmt.Printf("READ:  ")
 
-		for _, u := range(result.Permissions.Read) {
+		for _, u := range result.Permissions.Read {
 			fmt.Printf("%v ", u.UserId)
 		}
-		
+
 		fmt.Printf("\nWRITE: ")
 
-		for _, u := range(result.Permissions.Write) {
+		for _, u := range result.Permissions.Write {
 			fmt.Printf("%v ", u.UserId)
 		}
 
 		fmt.Printf("\nADMIN: ")
 
-		for _, u := range(result.Permissions.Admin) {
+		for _, u := range result.Permissions.Admin {
 			fmt.Printf("%v ", u.UserId)
 		}
-		
+
 		fmt.Printf("\n")
-		
+
 		return nil
 	}).
 		Execute()
-	
+
 	return err
 }
 
 func newListProjectsCmd() *Command {
 
-	return &Command {
-		Name: "list",
+	return &Command{
+		Name:    "list",
 		ApiPath: "/v1/projects",
-		Usage: "list projects",
-		Action: listProjects,
+		Usage:   "list projects",
+		Action:  listProjects,
 	}
 }
 
@@ -216,9 +222,9 @@ func listProjects(c *Command, ctx *Context) error {
 
 	type projectsResult struct {
 		Projects []struct {
-			ProjectId    uint64 `json:"project_id"`
-			ProjectName  string `json:"project_name"`
-			Created      string
+			ProjectId   uint64 `json:"project_id"`
+			ProjectName string `json:"project_name"`
+			Created     string
 			Permissions struct {
 				Admin bool
 				Read  bool
@@ -226,7 +232,7 @@ func listProjects(c *Command, ctx *Context) error {
 			}
 		}
 	}
-	
+
 	_, err := ctx.Client.
 		Get(c.ApiPath).
 		Expect(200).
@@ -235,7 +241,7 @@ func listProjects(c *Command, ctx *Context) error {
 
 		result := body.(*projectsResult)
 
-		for _, p := range(result.Projects) {
+		for _, p := range result.Projects {
 			perms := ""
 
 			if p.Permissions.Read {
@@ -248,16 +254,16 @@ func listProjects(c *Command, ctx *Context) error {
 				perms += "ADMIN "
 			}
 
-			fmt.Printf("Project ID: %v\n" +
-				"Project name: %v\n" +
-				"Created: %v\n" +
+			fmt.Printf("Project ID: %v\n"+
+				"Project name: %v\n"+
+				"Created: %v\n"+
 				"Permissions: %v\n\n",
 				p.ProjectId,
 				p.ProjectName,
 				p.Created,
 				perms)
- 		}
-			
+		}
+
 		return nil
 	}).Execute()
 
@@ -269,14 +275,14 @@ func newProjectPermissionsCmd() *Command {
 	p := projectData{
 		isPermissions: true,
 	}
-	
-	cmd := &Command {
-		Name: "permissions",
+
+	cmd := &Command{
+		Name:    "permissions",
 		ApiPath: "/v1/projects/%v/permissions",
-		Usage: "get project permissions",
-		Data: &p,
-		Flags: flag.NewFlagSet("permissions", flag.ExitOnError),
-		Action: getProjectPermissions,
+		Usage:   "get project permissions",
+		Data:    &p,
+		Flags:   flag.NewFlagSet("permissions", flag.ExitOnError),
+		Action:  getProjectPermissions,
 	}
 
 	cmd.Flags.Uint64Var(&p.ProjectId, "id", 0, "The project ID")
@@ -290,12 +296,18 @@ func getProjectPermissions(c *Command, ctx *Context) error {
 
 	type permissionsResult struct {
 		Permissions struct {
-			Read  []struct { UserId uint64 `json:"user_id"` }
-			Write []struct { UserId uint64 `json:"user_id"` }
-			Admin []struct { UserId uint64 `json:"user_id"` }
+			Read []struct {
+				UserId uint64 `json:"user_id"`
+			}
+			Write []struct {
+				UserId uint64 `json:"user_id"`
+			}
+			Admin []struct {
+				UserId uint64 `json:"user_id"`
+			}
 		}
 	}
-	
+
 	_, err := ctx.Client.
 		Get(fmt.Sprintf(c.ApiPath, strconv.FormatUint(p.ProjectId, 10))).
 		Expect(200).
@@ -308,26 +320,26 @@ func getProjectPermissions(c *Command, ctx *Context) error {
 
 		fmt.Printf("\n%10v ", "READ")
 
-		for _, r := range(result.Permissions.Read) {
+		for _, r := range result.Permissions.Read {
 			fmt.Printf("%v ", r.UserId)
 		}
 
 		fmt.Printf("\n%10v ", "WRITE")
 
-		for _, w := range(result.Permissions.Write) {
+		for _, w := range result.Permissions.Write {
 			fmt.Printf("%v ", w.UserId)
 		}
 
 		fmt.Printf("\n%10v ", "ADMIN")
 
-		for _, a := range(result.Permissions.Admin) {
+		for _, a := range result.Permissions.Admin {
 			fmt.Printf("%v ", a.UserId)
 		}
 
 		fmt.Printf("\n")
-		
+
 		return nil
 	}).Execute()
-	
+
 	return err
 }
