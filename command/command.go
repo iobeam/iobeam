@@ -1,11 +1,11 @@
 package command
 
 import (
-	"os"
-	"fmt"
-	"flag"
-	"errors"
 	"beam.io/beam/client"
+	"errors"
+	"flag"
+	"fmt"
+	"os"
 )
 
 // Interface fo data that is posted to API, and generated from command-line input.
@@ -14,24 +14,24 @@ type Data interface {
 }
 
 type Context struct {
-	Cmd *Command
+	Cmd    *Command
 	Client *client.Client
-	Index int
-	Args []string
+	Index  int
+	Args   []string
 }
 
 type Mux map[string]*Command
 
-type CommandAction func(*Command, *Context) (error)
+type CommandAction func(*Command, *Context) error
 
 type Command struct {
-	Name string
-	Usage string
-	ApiPath string
-	Flags *flag.FlagSet
+	Name        string
+	Usage       string
+	ApiPath     string
+	Flags       *flag.FlagSet
 	SubCommands Mux
-	Data Data
-	Action CommandAction
+	Data        Data
+	Action      CommandAction
 }
 
 func (c *Command) PrintUsage() {
@@ -42,7 +42,7 @@ func (c *Command) PrintUsage() {
 
 		fmt.Fprint(os.Stderr, "\nAvailable Commands:\n")
 
-		for _, v := range(c.SubCommands) {
+		for _, v := range c.SubCommands {
 			fmt.Fprintf(os.Stderr, "  %-20s :: %s\n",
 				v.Name, v.Usage)
 		}
@@ -64,32 +64,31 @@ func (c *Command) IsValid() bool {
 
 	return c.Data.IsValid()
 }
-	
 
-func (c *Command) Execute(ctx *Context) (error) {
-	
+func (c *Command) Execute(ctx *Context) error {
+
 	ctx.Index++
-	
+
 	c.ParseFlags(ctx)
 
-	if c.IsValid() {	
+	if c.IsValid() {
 		if c.Action != nil {
 			return c.Action(c, ctx)
 		}
-		
+
 		if c.SubCommands != nil && ctx.Index < len(ctx.Args) {
 			sc := c.SubCommands[ctx.Args[ctx.Index]]
-			
+
 			if sc == nil {
 				return errors.New("Invalid command '" +
 					ctx.Args[ctx.Index] + "'")
 			}
-			
+
 			return sc.Execute(ctx)
 		}
 	}
 	c.PrintUsage()
-	
+
 	return nil
 }
 
