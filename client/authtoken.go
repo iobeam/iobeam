@@ -7,6 +7,10 @@ import (
 	"strconv"
 )
 
+// AuthToken is a representation of both user and project tokens. It contains
+// for all tokens the actual token string and when it expires. For user tokens
+// it also contains the userID it pertains to. For project tokens it contains
+// the projectID it pertains to, as well as its permissions.
 type AuthToken struct {
 	Token     string
 	Expires   string
@@ -17,6 +21,7 @@ type AuthToken struct {
 	Admin     bool   `json:",omitempty"`
 }
 
+const dotDirName = ".iobeam"
 const userTokenFile = "token.json"
 const pathSeparator = string(os.PathSeparator)
 
@@ -27,7 +32,7 @@ func tokenDir() string {
 		return os.TempDir()
 	}
 
-	return user.HomeDir + pathSeparator + ".beam"
+	return user.HomeDir + pathSeparator + dotDirName
 }
 
 func userTokenPath() string {
@@ -38,6 +43,7 @@ func projTokenPath(id uint64) string {
 	return tokenDir() + pathSeparator + "proj_" + strconv.FormatUint(id, 10) + ".json"
 }
 
+// Save writes the token to disk in the user's .iobeam directory.
 func (t *AuthToken) Save() error {
 	var tokenPath string
 	if t.ProjectId == 0 {
@@ -88,10 +94,13 @@ func readToken(tokenPath string) (*AuthToken, error) {
 	return t, err
 }
 
+// ReadUserToken fetches the user token that is stored on disk, if it exists.
 func ReadUserToken() (*AuthToken, error) {
 	return readToken(userTokenPath())
 }
 
+// ReadProjToken fetches the project token for a particular id from the disk,
+// if it exists.
 func ReadProjToken(id uint64) (*AuthToken, error) {
 	return readToken(projTokenPath(id))
 }

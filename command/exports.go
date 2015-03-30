@@ -20,6 +20,7 @@ func (e *exportData) IsValid() bool {
 	return e.projectId > 0 && e.limit > 0
 }
 
+// NewExportCommand returns the base 'export' command.
 func NewExportCommand() *Command {
 
 	e := new(exportData)
@@ -41,6 +42,8 @@ func NewExportCommand() *Command {
 	return cmd
 }
 
+// getExport fetches the requested data from the iobeam Cloud based on
+// the provided projectID, deviceID, and series name.
 func getExport(c *Command, ctx *Context) error {
 	e := c.Data.(*exportData)
 
