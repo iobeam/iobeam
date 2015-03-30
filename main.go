@@ -1,24 +1,20 @@
 package main
 
 import (
-	"beam.io/beam/client"
-	"beam.io/beam/command"
 	"flag"
 	"fmt"
+	"iobeam.com/iobeam/client"
+	"iobeam.com/iobeam/command"
 	"os"
 )
 
-type Arguments struct {
-	Command  *string
-	Username *string
-	Password *string
-}
+const defaultServer = "https://api.iobeam.com"
 
 func main() {
 	cmd := &command.Command{
 		Name:  os.Args[0],
-		Usage: "Beam Command-Line Interface",
-		Flags: flag.NewFlagSet("cerebriq", flag.ExitOnError),
+		Usage: "iobeam Command-Line Interface",
+		Flags: flag.NewFlagSet("iobeam", flag.ExitOnError),
 		SubCommands: command.Mux{
 			"user":    command.NewUsersCommand(),
 			"token":   command.NewTokensCommand(),
@@ -31,10 +27,10 @@ func main() {
 	var apiServer string
 
 	cmd.Flags.StringVar(&apiServer, "server",
-		"http://localhost:8080", "API server URI")
+		defaultServer, "API server URI")
 
 	ctx := &command.Context{
-		Client: client.NewClient(&apiServer, "foo", "bar"),
+		Client: client.NewClient(&apiServer),
 		Args:   os.Args,
 		Index:  0,
 	}

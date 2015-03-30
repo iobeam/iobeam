@@ -1,9 +1,9 @@
 package command
 
 import (
-	"beam.io/beam/client"
 	"flag"
 	"fmt"
+	"iobeam.com/iobeam/client"
 	"strconv"
 )
 
@@ -27,6 +27,7 @@ func (u *projectData) IsValid() bool {
 	return len(u.ProjectName) > 0
 }
 
+// NewProjectCommand returns the base 'project' command.
 func NewProjectsCommand() *Command {
 	cmd := &Command{
 		Name:  "project",

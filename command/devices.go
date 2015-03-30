@@ -29,6 +29,7 @@ func (d *deviceData) IsValid() bool {
 	return d.ProjectId != 0
 }
 
+// NewDevicesCommand returns the base 'device' command.
 func NewDevicesCommand() *Command {
 	cmd := &Command{
 		Name:  "device",

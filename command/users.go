@@ -1,10 +1,10 @@
 package command
 
 import (
-	"beam.io/beam/client"
 	"bufio"
 	"flag"
 	"fmt"
+	"iobeam.com/iobeam/client"
 	"os"
 	"strconv"
 )
@@ -41,6 +41,7 @@ func (u *userData) IsValid() bool {
 	return len(u.Email) > 0 && len(u.Password) > 0
 }
 
+// NewUsersCommand returns the base 'user' command.
 func NewUsersCommand() *Command {
 	cmd := &Command{
 		Name:  "user",

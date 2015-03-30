@@ -1,11 +1,12 @@
 package command
 
 import (
-	"beam.io/beam/client"
 	"flag"
 	"fmt"
+	"iobeam.com/iobeam/client"
 )
 
+// NewTokensCommand returns the base 'token' command.
 func NewTokensCommand() *Command {
 	cmd := &Command{
 		Name:  "token",
