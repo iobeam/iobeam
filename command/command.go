@@ -1,10 +1,10 @@
 package command
 
 import (
-	"beam.io/beam/client"
 	"errors"
 	"flag"
 	"fmt"
+	"iobeam.com/iobeam/client"
 	"os"
 )
 

@@ -7,8 +7,8 @@ A command-line interface (CLI) for the iobeam API.
 
 Install Go, if not already installed (e.g., 'brew install go').
 
-    $ mkdir $GOPATH/src/beam.io
-    $ cd $GOPATH/src/beam.io
+    $ mkdir $GOPATH/src/iobeam.com
+    $ cd $GOPATH/src/iobeam.com
     $ git clone git@bitbucket.org:440-labs/beam.git
     $ cd beam && go install
     

@@ -1,10 +1,10 @@
 package command
 
 import (
-	"beam.io/beam/client"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"iobeam.com/iobeam/client"
 	"strconv"
 )
 

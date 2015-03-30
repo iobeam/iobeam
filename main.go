@@ -1,14 +1,14 @@
 package main
 
 import (
-	"beam.io/beam/client"
-	"beam.io/beam/command"
 	"flag"
 	"fmt"
+	"iobeam.com/iobeam/client"
+	"iobeam.com/iobeam/command"
 	"os"
 )
 
-const defaultServer = "https://iot.watchvast.com"
+const defaultServer = "https://api.iobeam.com"
 
 func main() {
 	cmd := &command.Command{

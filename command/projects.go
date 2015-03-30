@@ -1,9 +1,9 @@
 package command
 
 import (
-	"beam.io/beam/client"
 	"flag"
 	"fmt"
+	"iobeam.com/iobeam/client"
 	"strconv"
 )
 
