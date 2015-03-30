@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-// Interface fo data that is posted to API, and generated from command-line input.
+// Data is an interface for data that is posted to API, generated from command-line input.
 type Data interface {
 	IsValid() bool
 }
@@ -20,10 +20,15 @@ type Context struct {
 	Args   []string
 }
 
+// Mux maps a subcommand name to its Command object.
 type Mux map[string]*Command
 
+// CommandAction is a function that is called when a command is invoked.
 type CommandAction func(*Command, *Context) error
 
+// Command is a representation of a CLI command including its name, usage,
+// what API path it corresponds to (if any), flags, subcommands (if any), API data, and
+// action to be taken when invoked.
 type Command struct {
 	Name        string
 	Usage       string
@@ -34,7 +39,7 @@ type Command struct {
 	Action      CommandAction
 }
 
-func (c *Command) PrintUsage() {
+func (c *Command) printUsage() {
 
 	if c.SubCommands != nil {
 		fmt.Fprintf(os.Stderr, "Usage: %s COMMAND [FLAGS]\n\n", c.Name)
@@ -57,7 +62,7 @@ func (c *Command) PrintUsage() {
 	}
 }
 
-func (c *Command) IsValid() bool {
+func (c *Command) isValid() bool {
 	if c.Data == nil {
 		return true
 	}
@@ -65,13 +70,14 @@ func (c *Command) IsValid() bool {
 	return c.Data.IsValid()
 }
 
+// Execute invokes the command it is called on.
 func (c *Command) Execute(ctx *Context) error {
 
 	ctx.Index++
 
-	c.ParseFlags(ctx)
+	c.parseFlags(ctx)
 
-	if c.IsValid() {
+	if c.isValid() {
 		if c.Action != nil {
 			return c.Action(c, ctx)
 		}
@@ -87,14 +93,13 @@ func (c *Command) Execute(ctx *Context) error {
 			return sc.Execute(ctx)
 		}
 	}
-	c.PrintUsage()
+	c.printUsage()
 
 	return nil
 }
 
-func (c *Command) ParseFlags(ctx *Context) {
+func (c *Command) parseFlags(ctx *Context) {
 	if c.Flags != nil {
-		//fmt.Println("Parsing flags for command", c.Name, "arr", ctx.Args[ctx.Index:])
 		c.Flags.Parse(ctx.Args[ctx.Index:])
 		ctx.Index += c.Flags.NFlag()
 	}

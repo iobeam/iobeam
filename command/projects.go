@@ -27,6 +27,7 @@ func (u *projectData) IsValid() bool {
 	return len(u.ProjectName) > 0
 }
 
+// NewProjectCommand returns the base 'project' command.
 func NewProjectsCommand() *Command {
 	cmd := &Command{
 		Name:  "project",

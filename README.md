@@ -15,6 +15,6 @@ Install Go, if not already installed (e.g., 'brew install go').
 ## Usage ##
 
 `iobeam` allows you to manage your projects, devices, and data in the iobeam
-cloud. A dot directory, `.beam`, is created under your user's home directory
+cloud. A dot directory, `.iobeam`, is created under your user's home directory
 to store state such as user and project tokens which authenticate you to the
 iobeam cloud.
