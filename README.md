@@ -9,8 +9,8 @@ Install Go, if not already installed (e.g., 'brew install go').
 
     $ mkdir $GOPATH/src/iobeam.com
     $ cd $GOPATH/src/iobeam.com
-    $ git clone git@bitbucket.org:440-labs/beam.git
-    $ cd beam && go install
+    $ git clone git@bitbucket.org:440-labs/iobeam.git
+    $ cd iobeam && go install
     
 ## Usage ##
 
