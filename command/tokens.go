@@ -65,7 +65,7 @@ func getUserToken(c *Command, ctx *Context) error {
 		if err != nil {
 			fmt.Printf("Could not save token: %s\n", err)
 		}
-
+		fmt.Println("Token acquired:")
 		fmt.Printf("%s\n", authToken.Token)
 
 		return err

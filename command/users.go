@@ -159,11 +159,15 @@ func createUser(c *Command, ctx *Context) error {
 		ResponseBodyHandler(func(body interface{}) error {
 
 		u := body.(*userData)
-		fmt.Printf("The new user ID for %s is %d\n",
-			u.Email,
-			u.UserId)
+		fmt.Printf("New user created. ID for '%s': %d\n", u.Email, u.UserId)
+		fmt.Println("Acquiring token...")
 
-		return nil
+		// Log new user by getting their token.
+		tokenCmd := newGetUserTokenCmd()
+		t := tokenCmd.Data.(*basicAuthData)
+		t.username = u.Email
+		t.password = u.Password
+		return getUserToken(tokenCmd, ctx)
 	}).Execute()
 
 	return err
