@@ -29,7 +29,7 @@ store state such as user and project tokens which authenticate you to the iobeam
     # Register as a new user
     $ iobeam user create -email="<email>" -password="<password>"
 
-    # Create a new project. (Keep track of the project_id that the API returns.)
+    # Create a new project. Project name must be globally unique. (Keep track of the project_id that the API returns.)
     $ iobeam project create -name="<project_name>"
     
     # Get a project token with read/write/admin access
@@ -55,6 +55,6 @@ Please refer to our [Imports API](http://docs.iobeam.com/imports).
     # Query a specific data stream under a given project and device
     $ iobeam export -projectId=<project_id> -deviceId="<device_id>" -series="<series_name>"
 
-The API also supports richer queries with operators (e.g., `mean`, `min`, `max`), date / value 
+The REST API also supports richer queries with operators (e.g., `mean`, `min`, `max`), date / value
 ranges, time-series rollups, and more. Please refer to our [Exports API](http://docs.iobeam.com/exports/) 
 for more information.
