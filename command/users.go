@@ -10,8 +10,8 @@ import (
 )
 
 type userData struct {
-	Email       string `json:"email"`
-	Password    string `json:"password"`
+	Email       string `json:"email,omitempty"`
+	Password    string `json:"password,omitempty"`
 	UserId      uint64 `json:"user_id,omitempty"`
 	Username    string `json:"username,omitempty"`
 	Url         string `json:"url,omitempty"`
@@ -50,7 +50,6 @@ func NewUsersCommand() *Command {
 			"get":          newGetUserCmd(),
 			"create":       newCreateUserCmd(),
 			"update":       newUpdateUserCmd(),
-			"search":       newSearchUsersCmd(),
 			"verify-email": newVerifyEmailCmd(),
 			"reset-pw":     newNewPasswordCmd(),
 		},
@@ -128,7 +127,7 @@ func updateUser(c *Command, ctx *Context) error {
 	if len(u.Password) > 0 {
 		bio := bufio.NewReader(os.Stdin)
 		// FIXME: do not echo old password
-		fmt.Printf("Enter old password:")
+		fmt.Printf("Enter old password: ")
 		line, _, err := bio.ReadLine()
 
 		if err != nil {
