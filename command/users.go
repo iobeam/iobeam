@@ -12,6 +12,7 @@ import (
 type userData struct {
 	Email       string `json:"email,omitempty"`
 	Password    string `json:"password,omitempty"`
+	Invite      string `json:"invite,omitempty"`
 	UserId      uint64 `json:"user_id,omitempty"`
 	Username    string `json:"username,omitempty"`
 	Url         string `json:"url,omitempty"`
@@ -37,8 +38,9 @@ func (u *userData) IsValid() bool {
 		return true
 	} else if u.isSearch {
 		return len(u.Username) > 0
+	} else { // create new user
+		return len(u.Email) > 0 && len(u.Password) > 0 && len(u.Invite) > 0
 	}
-	return len(u.Email) > 0 && len(u.Password) > 0
 }
 
 // NewUsersCommand returns the base 'user' command.
@@ -87,6 +89,11 @@ func newCreateOrUpdateUserCmd(update bool, name string, action CommandAction) *C
 	flags.StringVar(&user.LastName, "lastname", "", "The user's last name")
 	flags.StringVar(&user.CompanyName, "company", "", "The user's company name")
 	flags.StringVar(&user.Url, "url", "", "The user's webpage")
+
+	if !update {
+		flags.StringVar(&user.Invite, "invite", "", "Invite code needed for closed beta"+
+			requiredArg(true))
+	}
 
 	cmd := &Command{
 		Name:    name,
