@@ -30,7 +30,9 @@ func NewResponse(http *http.Response) *Response {
 
 func defaultResponseBodyReader(r *Response, into interface{}) error {
 	defer r.httpResponse.Body.Close()
-	return json.NewDecoder(r.httpResponse.Body).Decode(&into)
+	d := json.NewDecoder(r.httpResponse.Body)
+	d.UseNumber()
+	return d.Decode(&into)
 }
 
 func (r *Response) Read(into interface{}) error {
