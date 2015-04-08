@@ -33,11 +33,11 @@ func NewProjectsCommand() *Command {
 		Name:  "project",
 		Usage: "Create, get, or delete projects",
 		SubCommands: Mux{
-			"list":        newListProjectsCmd(),
-			"get":         newGetProjectCmd(),
 			"create":      newCreateProjectCmd(),
-			"update":      newUpdateProjectCmd(),
+			"get":         newGetProjectCmd(),
+			"list":        newListProjectsCmd(),
 			"permissions": newProjectPermissionsCmd(),
+			"update":      newUpdateProjectCmd(),
 		},
 	}
 
@@ -87,10 +87,19 @@ func createProject(c *Command, ctx *Context) error {
 		ResponseBodyHandler(func(body interface{}) error {
 
 		project := body.(*projectData)
-		fmt.Printf("The new project ID for %s is %d\n",
+		fmt.Printf("Project '%s' created with ID: %d\n",
 			project.ProjectName,
 			project.ProjectId)
-		return nil
+
+		fmt.Println("Acquiring project token...")
+		// Get new token for project.
+		tokenCmd := newGetProjectTokenCmd()
+		p := tokenCmd.Data.(*projectPermissions)
+		p.projectId = project.ProjectId
+		p.admin = true
+		p.write = true
+		p.read = true
+		return getProjectToken(tokenCmd, ctx)
 
 	}).Execute()
 
