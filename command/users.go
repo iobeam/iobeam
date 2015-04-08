@@ -47,13 +47,14 @@ func (u *userData) IsValid() bool {
 func NewUsersCommand() *Command {
 	cmd := &Command{
 		Name:  "user",
-		Usage: "Create, get, or delete users",
+		Usage: "Commands for managing users.",
 		SubCommands: Mux{
-			"get":          newGetUserCmd(),
 			"create":       newCreateUserCmd(),
+			"get":          newGetUserCmd(),
+			"login":        newGetUserTokenCmd(),
+			"reset-pw":     newNewPasswordCmd(),
 			"update":       newUpdateUserCmd(),
 			"verify-email": newVerifyEmailCmd(),
-			"reset-pw":     newNewPasswordCmd(),
 		},
 	}
 
