@@ -10,10 +10,9 @@ import (
 func NewTokensCommand() *Command {
 	cmd := &Command{
 		Name:  "token",
-		Usage: "Get token for user or device",
+		Usage: "Get token for a project.",
 		SubCommands: Mux{
-			"user": newGetUserTokenCmd(),
-			"proj": newGetProjectTokenCmd(),
+			"project": newGetProjectTokenCmd(),
 		},
 	}
 
@@ -22,11 +21,13 @@ func NewTokensCommand() *Command {
 
 type basicAuthData struct {
 	username string
+	email    string
 	password string
 }
 
 func (t *basicAuthData) IsValid() bool {
-	return len(t.username) > 0 && len(t.password) > 0
+	validUsername := len(t.email) > 0 || len(t.username) > 0
+	return validUsername && len(t.password) > 0
 }
 
 func newGetUserTokenCmd() *Command {
@@ -34,16 +35,17 @@ func newGetUserTokenCmd() *Command {
 	t := new(basicAuthData)
 
 	cmd := &Command{
-		Name:    "user",
+		Name:    "login",
 		ApiPath: "/v1/tokens/user",
-		Usage:   "get a new user token",
+		Usage:   "Log in as a user / switch active user",
 		Data:    t,
 		Flags:   flag.NewFlagSet("tokens", flag.ExitOnError),
 		Action:  getUserToken,
 	}
 
-	cmd.Flags.StringVar(&t.username, "username", "", "The username (REQUIRED)")
-	cmd.Flags.StringVar(&t.password, "password", "", "The password (REQUIRED)")
+	cmd.Flags.StringVar(&t.username, "username", "", "Username (REQUIRED, if no -email)")
+	cmd.Flags.StringVar(&t.email, "email", "", "Email (REQUIRED, if no -username)")
+	cmd.Flags.StringVar(&t.password, "password", "", "Password (REQUIRED)")
 
 	return cmd
 }
@@ -51,10 +53,14 @@ func newGetUserTokenCmd() *Command {
 func getUserToken(c *Command, ctx *Context) error {
 
 	t := c.Data.(*basicAuthData)
+	name := t.email
+	if len(name) == 0 {
+		name = t.username
+	}
 
 	_, err := ctx.Client.
 		Get(c.ApiPath).
-		BasicAuth(t.username, t.password).
+		BasicAuth(name, t.password).
 		Expect(200).
 		ResponseBody(new(client.AuthToken)).
 		ResponseBodyHandler(func(token interface{}) error {
@@ -90,7 +96,7 @@ func newGetProjectTokenCmd() *Command {
 	p := new(projectPermissions)
 
 	cmd := &Command{
-		Name:    "proj",
+		Name:    "project",
 		ApiPath: "/v1/tokens/project",
 		Usage:   "get a new project token",
 		Data:    p,
