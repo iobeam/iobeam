@@ -98,7 +98,7 @@ func newGetProjectTokenCmd() *Command {
 	cmd := &Command{
 		Name:    "project",
 		ApiPath: "/v1/tokens/project",
-		Usage:   "get a new project token",
+		Usage:   "Get a project token",
 		Data:    p,
 		Flags:   flag.NewFlagSet("tokens", flag.ExitOnError),
 		Action:  getProjectToken,
@@ -122,6 +122,7 @@ func getProjectToken(c *Command, ctx *Context) error {
 		ParamBool("read", p.read).
 		ParamBool("write", p.write).
 		ParamBool("admin", p.admin).
+		ParamBool("include_user", false). // TODO: make toggleable?
 		Expect(200).
 		ResponseBody(new(client.AuthToken)).
 		ResponseBodyHandler(func(token interface{}) error {
