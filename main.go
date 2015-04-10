@@ -5,17 +5,39 @@ import (
 	"fmt"
 	"github.com/iobeam/iobeam/client"
 	"github.com/iobeam/iobeam/command"
+	"github.com/iobeam/iobeam/config"
 	"os"
 )
 
-const defaultServer = "https://api.iobeam.com"
+func getActiveProfile() *config.Profile {
+	conf, err := config.ReadDefaultConfig()
+
+	if err != nil { // config does not exist
+		conf, err = config.InitConfig()
+		if err != nil {
+			panic("Could not initialize empty config file.")
+		}
+	}
+	profile, err := config.ReadProfile(conf.Name)
+	if profile == nil || err != nil {
+		profile, err = config.InitProfile(conf.Name)
+		if err != nil {
+			panic("Could not initialize profile.")
+		}
+	}
+	return profile
+}
 
 func main() {
+	profile := getActiveProfile()
+	server := profile.Server
+
 	cmd := &command.Command{
 		Name:  os.Args[0],
 		Usage: "iobeam Command-Line Interface",
-		Flags: flag.NewFlagSet("iobeam", flag.ExitOnError),
+		Flags: nil,
 		SubCommands: command.Mux{
+			"profile": command.NewConfigCommand(),
 			"user":    command.NewUsersCommand(),
 			"token":   command.NewTokensCommand(),
 			"project": command.NewProjectsCommand(),
@@ -24,15 +46,11 @@ func main() {
 		},
 	}
 
-	var apiServer string
-
-	cmd.Flags.StringVar(&apiServer, "server",
-		defaultServer, "API server URI")
-
 	ctx := &command.Context{
-		Client: client.NewClient(&apiServer),
-		Args:   os.Args,
-		Index:  0,
+		Client:  client.NewClient(&server),
+		Args:    os.Args,
+		Profile: profile,
+		Index:   0,
 	}
 
 	flag.Usage = func() {

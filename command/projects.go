@@ -82,6 +82,7 @@ func createProject(c *Command, ctx *Context) error {
 	_, err := ctx.Client.
 		Post(c.ApiPath).
 		Body(c.Data).
+		UserToken(ctx.Profile).
 		Expect(201).
 		ResponseBody(c.Data).
 		ResponseBodyHandler(func(body interface{}) error {
@@ -113,6 +114,7 @@ func updateProject(c *Command, ctx *Context) error {
 	rsp, err := ctx.Client.
 		Patch(c.ApiPath + "/" + strconv.FormatUint(u.ProjectId, 10)).
 		Body(c.Data).
+		UserToken(ctx.Profile).
 		Expect(200).
 		Execute()
 
@@ -179,6 +181,7 @@ func getProject(c *Command, ctx *Context) error {
 	}
 
 	_, err := req.
+		UserToken(ctx.Profile).
 		Expect(200).
 		ResponseBody(new(projectResult)).
 		ResponseBodyHandler(func(body interface{}) error {
@@ -245,6 +248,7 @@ func listProjects(c *Command, ctx *Context) error {
 
 	_, err := ctx.Client.
 		Get(c.ApiPath).
+		UserToken(ctx.Profile).
 		Expect(200).
 		ResponseBody(new(projectsResult)).
 		ResponseBodyHandler(func(body interface{}) error {
@@ -320,6 +324,7 @@ func getProjectPermissions(c *Command, ctx *Context) error {
 
 	_, err := ctx.Client.
 		Get(fmt.Sprintf(c.ApiPath, strconv.FormatUint(p.ProjectId, 10))).
+		UserToken(ctx.Profile).
 		Expect(200).
 		ResponseBody(new(permissionsResult)).
 		ResponseBodyHandler(func(body interface{}) error {

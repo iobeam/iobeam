@@ -83,6 +83,7 @@ func createDevice(c *Command, ctx *Context) error {
 	_, err := ctx.Client.
 		Post(c.ApiPath).
 		Body(c.Data).
+		UserToken(ctx.Profile).
 		Expect(201).
 		ResponseBody(c.Data).
 		ResponseBodyHandler(func(body interface{}) error {
@@ -104,6 +105,7 @@ func updateDevice(c *Command, ctx *Context) error {
 	rsp, err := ctx.Client.
 		Patch(c.ApiPath + "/" + device.DeviceId).
 		Body(c.Data).
+		UserToken(ctx.Profile).
 		Expect(200).
 		Execute()
 
@@ -142,6 +144,7 @@ func getDevice(c *Command, ctx *Context) error {
 	device := c.Data.(*deviceData)
 
 	_, err := ctx.Client.Get(c.ApiPath + "/" + device.DeviceId).
+		UserToken(ctx.Profile).
 		Expect(200).
 		ResponseBody(device).
 		ResponseBodyHandler(func(interface{}) error {
@@ -192,6 +195,7 @@ func listDevices(c *Command, ctx *Context) error {
 	_, err := ctx.Client.
 		Get(c.ApiPath).
 		ParamUint64("project_id", c.Data.(*deviceData).ProjectId).
+		UserToken(ctx.Profile).
 		Expect(200).
 		ResponseBody(new(deviceList)).
 		ResponseBodyHandler(func(body interface{}) error {
@@ -242,6 +246,7 @@ func deleteDevice(c *Command, ctx *Context) error {
 
 	_, err := ctx.Client.
 		Delete(c.ApiPath + "/" + c.Data.(*deviceData).DeviceId).
+		UserToken(ctx.Profile).
 		Expect(204).
 		Execute()
 

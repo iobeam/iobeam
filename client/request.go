@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/iobeam/iobeam/config"
 	"io"
 	"net/http"
 	"net/url"
@@ -86,8 +87,13 @@ func (r *Request) BasicAuth(username string, password string) *Request {
 	return r
 }
 
-func (r *Request) Token(t *AuthToken) *Request {
-	r.token = t
+func (r *Request) UserToken(p *config.Profile) *Request {
+	r.token, _ = ReadUserToken(p)
+	return r
+}
+
+func (r *Request) ProjectToken(p *config.Profile, id uint64) *Request {
+	r.token, _ = ReadProjToken(p, id)
 	return r
 }
 
@@ -134,19 +140,11 @@ func (r *Request) Execute() (*Response, error) {
 		req.Header.Add("Content-Type", "application/json")
 	}
 
+	// If basic auth nor a token is set, we'll try anyway and then fail as unauthorized.
 	if r.auth != nil {
 		req.SetBasicAuth(r.auth.username, r.auth.password)
 	} else if r.token != nil {
 		req.Header.Add("Authorization", "Bearer "+r.token.Token)
-	} else { // if all else fails, use user token
-		authToken, err := ReadUserToken()
-
-		// If we didn't have a token, just try anyway and let
-		// the API return error if we are not requesting an auth-less
-		// API endpoint
-		if err == nil {
-			req.Header.Add("Authorization", "Bearer "+authToken.Token)
-		}
 	}
 
 	httpRsp, err := r.client.httpClient.Do(req)

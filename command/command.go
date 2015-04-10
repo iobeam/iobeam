@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/iobeam/iobeam/client"
+	"github.com/iobeam/iobeam/config"
 	"os"
+	"sort"
 )
 
 // Data is an interface for data that is posted to API, generated from command-line input.
@@ -14,10 +16,11 @@ type Data interface {
 }
 
 type Context struct {
-	Cmd    *Command
-	Client *client.Client
-	Index  int
-	Args   []string
+	Cmd     *Command
+	Client  *client.Client
+	Profile *config.Profile
+	Index   int
+	Args    []string
 }
 
 // Mux maps a subcommand name to its Command object.
@@ -47,9 +50,16 @@ func (c *Command) printUsage() {
 
 		fmt.Fprint(os.Stderr, "\nAvailable Commands:\n")
 
-		for _, v := range c.SubCommands {
+		subs := make([]string, 0, len(c.SubCommands))
+		for k, _ := range c.SubCommands {
+			subs = append(subs, k)
+		}
+		sort.Strings(subs)
+
+		for _, s := range subs {
+			temp := c.SubCommands[s]
 			fmt.Fprintf(os.Stderr, "  %-20s :: %s\n",
-				v.Name, v.Usage)
+				temp.Name, temp.Usage)
 		}
 	} else {
 		fmt.Fprintf(os.Stderr, "Usage: %s [FLAGS]\n\n", c.Name)
