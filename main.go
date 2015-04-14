@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"iobeam.com/iobeam/client"
-	"iobeam.com/iobeam/command"
+	"github.com/iobeam/iobeam/client"
+	"github.com/iobeam/iobeam/command"
 	"os"
 )
 

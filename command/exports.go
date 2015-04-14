@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"iobeam.com/iobeam/client"
+	"github.com/iobeam/iobeam/client"
 	"strconv"
 )
 

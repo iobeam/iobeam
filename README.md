@@ -10,14 +10,12 @@ to generate a valid token and use our APIs. (Want an invite? Sign up [here](http
 
 ## Installation ##
 
-Install `Go` if not already installed (e.g., `brew install go`)
+Install `Go` if not already installed (e.g., `brew install go` on Mac OS X). Make sure you
+set your `GOPATH` (e.g., export GOPATH=~/go) and that the `GOPATH` exists.
 
 Then,
 
-    $ mkdir $GOPATH/src/iobeam.com
-    $ cd $GOPATH/src/iobeam.com
-    $ git clone https://github.com/iobeam/iobeam.git
-    $ cd iobeam && go install
+    $ go get github.com/iobeam/iobeam
     
 Note: A dot directory, `.iobeam`, is created under your user's home directory to
 store state such as user and project tokens which authenticate you to the iobeam cloud.

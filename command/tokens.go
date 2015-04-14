@@ -3,7 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
-	"iobeam.com/iobeam/client"
+	"github.com/iobeam/iobeam/client"
 )
 
 // NewTokensCommand returns the base 'token' command.
