@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"iobeam.com/iobeam/client"
+	"github.com/iobeam/iobeam/client"
 	"os"
 	"strconv"
 )
