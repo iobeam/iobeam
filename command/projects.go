@@ -31,12 +31,13 @@ func (u *projectData) IsValid() bool {
 func NewProjectsCommand() *Command {
 	cmd := &Command{
 		Name:  "project",
-		Usage: "Create, get, or delete projects",
+		Usage: "Commands for managing projects.",
 		SubCommands: Mux{
 			"create":      newCreateProjectCmd(),
 			"get":         newGetProjectCmd(),
 			"list":        newListProjectsCmd(),
 			"permissions": newProjectPermissionsCmd(),
+			"token":       newGetProjectTokenCmd(),
 			"update":      newUpdateProjectCmd(),
 		},
 	}
