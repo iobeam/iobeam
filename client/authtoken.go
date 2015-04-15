@@ -2,8 +2,8 @@ package client
 
 import (
 	"encoding/json"
+	"github.com/iobeam/iobeam/config"
 	"os"
-	"os/user"
 	"strconv"
 )
 
@@ -21,38 +21,28 @@ type AuthToken struct {
 	Admin     bool   `json:",omitempty"`
 }
 
-const dotDirName = ".iobeam"
 const userTokenFile = "token.json"
 const pathSeparator = string(os.PathSeparator)
 
-func tokenDir() string {
-	user, err := user.Current()
-
-	if err != nil {
-		return os.TempDir()
-	}
-
-	return user.HomeDir + pathSeparator + dotDirName
+func userTokenPath(p *config.Profile) string {
+	return p.GetDir() + pathSeparator + userTokenFile
 }
 
-func userTokenPath() string {
-	return tokenDir() + pathSeparator + userTokenFile
-}
-
-func projTokenPath(id uint64) string {
-	return tokenDir() + pathSeparator + "proj_" + strconv.FormatUint(id, 10) + ".json"
+func projTokenPath(p *config.Profile, id uint64) string {
+	return p.GetDir() + pathSeparator + "proj_" + strconv.FormatUint(id, 10) + ".json"
 }
 
 // Save writes the token to disk in the user's .iobeam directory.
-func (t *AuthToken) Save() error {
+func (t *AuthToken) Save(p *config.Profile) error {
 	var tokenPath string
 	if t.ProjectId == 0 {
-		tokenPath = userTokenPath()
+		tokenPath = userTokenPath(p)
 	} else {
-		tokenPath = projTokenPath(t.ProjectId)
+		tokenPath = projTokenPath(p, t.ProjectId)
 	}
 
-	err := os.MkdirAll(tokenDir(), 0700)
+	dir := p.GetDir()
+	err := os.MkdirAll(dir, 0700)
 
 	if err != nil {
 		return err
@@ -95,12 +85,12 @@ func readToken(tokenPath string) (*AuthToken, error) {
 }
 
 // ReadUserToken fetches the user token that is stored on disk, if it exists.
-func ReadUserToken() (*AuthToken, error) {
-	return readToken(userTokenPath())
+func ReadUserToken(p *config.Profile) (*AuthToken, error) {
+	return readToken(userTokenPath(p))
 }
 
 // ReadProjToken fetches the project token for a particular id from the disk,
 // if it exists.
-func ReadProjToken(id uint64) (*AuthToken, error) {
-	return readToken(projTokenPath(id))
+func ReadProjToken(p *config.Profile, id uint64) (*AuthToken, error) {
+	return readToken(projTokenPath(p, id))
 }

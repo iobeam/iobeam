@@ -66,14 +66,18 @@ func getUserToken(c *Command, ctx *Context) error {
 		ResponseBodyHandler(func(token interface{}) error {
 
 		authToken := token.(*client.AuthToken)
-		err := authToken.Save()
-
+		err := authToken.Save(ctx.Profile)
 		if err != nil {
 			fmt.Printf("Could not save token: %s\n", err)
 		}
+
+		err = ctx.Profile.UpdateActiveUser(authToken.UserId)
+		if err != nil {
+			fmt.Printf("Could not update active user: %s\n", err)
+		}
+
 		fmt.Println("Token acquired:")
 		fmt.Printf("%s\n", authToken.Token)
-
 		return err
 	}).Execute()
 
@@ -123,14 +127,20 @@ func getProjectToken(c *Command, ctx *Context) error {
 		ParamBool("write", p.write).
 		ParamBool("admin", p.admin).
 		ParamBool("include_user", false). // TODO: make toggleable?
+		UserToken(ctx.Profile).
 		Expect(200).
 		ResponseBody(new(client.AuthToken)).
 		ResponseBodyHandler(func(token interface{}) error {
 
 		projToken := token.(*client.AuthToken)
-		err := projToken.Save()
+		err := projToken.Save(ctx.Profile)
 		if err != nil {
 			fmt.Printf("Could not save token: %s\n", err)
+		}
+
+		err = ctx.Profile.UpdateActiveProject(projToken.ProjectId)
+		if err != nil {
+			fmt.Printf("Could not update active project: %s\n", err)
 		}
 
 		fmt.Printf("%4v: %v\n%4v:\n  %-6v: %v\n  %-6v: %v\n  %-6v: %v\n%v\n",

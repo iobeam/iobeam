@@ -129,6 +129,7 @@ func updateUser(c *Command, ctx *Context) error {
 
 	req := ctx.Client.
 		Patch(c.ApiPath).
+		UserToken(ctx.Profile).
 		Body(c.Data).
 		Expect(200)
 
@@ -216,6 +217,7 @@ func getUser(c *Command, ctx *Context) error {
 	}
 
 	_, err := req.
+		UserToken(ctx.Profile).
 		Expect(200).
 		ResponseBody(c.Data).
 		ResponseBodyHandler(func(interface{}) error {
@@ -268,6 +270,7 @@ func searchUsers(c *Command, ctx *Context) error {
 	_, err := ctx.Client.
 		Get(c.ApiPath).
 		Param("search", c.Data.(*userData).Username).
+		UserToken(ctx.Profile).
 		Expect(200).
 		ResponseBody(user).
 		ResponseBodyHandler(func(interface{}) error {
@@ -315,6 +318,7 @@ func newVerifyEmailCmd() *Command {
 func verifyEmail(c *Command, ctx *Context) error {
 	_, err := ctx.Client.
 		Post(c.ApiPath).
+		UserToken(ctx.Profile).
 		Expect(204).
 		Body(c.Data).
 		Execute()

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/iobeam/iobeam/client"
 	"strconv"
 )
 
@@ -56,17 +55,11 @@ func getExport(c *Command, ctx *Context) error {
 		}
 	}
 
-	token, err := client.ReadProjToken(e.projectId)
-	if err != nil {
-		fmt.Printf("Missing token for project %d.\n", e.projectId)
-		return err
-	}
-
 	x := make(map[string]interface{})
-	_, err = ctx.Client.
+	_, err := ctx.Client.
 		Get(reqPath).
 		Expect(200).
-		Token(token).
+		ProjectToken(ctx.Profile, e.projectId).
 		ParamUint64("limit", e.limit).
 		ResponseBody(&x).
 		ResponseBodyHandler(func(token interface{}) error {
