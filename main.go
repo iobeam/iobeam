@@ -37,12 +37,11 @@ func main() {
 		Usage: "iobeam Command-Line Interface",
 		Flags: nil,
 		SubCommands: command.Mux{
-			"profile": command.NewConfigCommand(),
-			"user":    command.NewUsersCommand(),
-			"token":   command.NewTokensCommand(),
-			"project": command.NewProjectsCommand(),
 			"device":  command.NewDevicesCommand(),
 			"export":  command.NewExportCommand(),
+			"profile": command.NewConfigCommand(),
+			"project": command.NewProjectsCommand(),
+			"user":    command.NewUsersCommand(),
 		},
 	}
 

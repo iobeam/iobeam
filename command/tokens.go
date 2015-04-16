@@ -6,19 +6,6 @@ import (
 	"github.com/iobeam/iobeam/client"
 )
 
-// NewTokensCommand returns the base 'token' command.
-func NewTokensCommand() *Command {
-	cmd := &Command{
-		Name:  "token",
-		Usage: "Get token for a project.",
-		SubCommands: Mux{
-			"project": newGetProjectTokenCmd(),
-		},
-	}
-
-	return cmd
-}
-
 type basicAuthData struct {
 	username string
 	email    string
@@ -31,7 +18,6 @@ func (t *basicAuthData) IsValid() bool {
 }
 
 func newGetUserTokenCmd() *Command {
-
 	t := new(basicAuthData)
 
 	cmd := &Command{
@@ -100,9 +86,9 @@ func newGetProjectTokenCmd() *Command {
 	p := new(projectPermissions)
 
 	cmd := &Command{
-		Name:    "project",
+		Name:    "token",
 		ApiPath: "/v1/tokens/project",
-		Usage:   "Get a project token",
+		Usage:   "Get a project token.",
 		Data:    p,
 		Flags:   flag.NewFlagSet("tokens", flag.ExitOnError),
 		Action:  getProjectToken,
