@@ -47,7 +47,7 @@ func main() {
 			"device":  command.NewDevicesCommand(ctx),
 			"query":   command.NewExportCommand(ctx),
 			"profile": command.NewConfigCommand(),
-			"project": command.NewProjectsCommand(),
+			"project": command.NewProjectsCommand(ctx),
 			"user":    command.NewUsersCommand(ctx),
 		},
 	}

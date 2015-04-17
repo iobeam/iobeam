@@ -81,7 +81,7 @@ func (p *projectPermissions) IsValid() bool {
 	return p.projectId != 0
 }
 
-func newGetProjectTokenCmd() *Command {
+func newGetProjectTokenCmd(ctx *Context) *Command {
 
 	p := new(projectPermissions)
 
@@ -94,7 +94,7 @@ func newGetProjectTokenCmd() *Command {
 		Action:  getProjectToken,
 	}
 
-	cmd.Flags.Uint64Var(&p.projectId, "id", 0, "The project ID (REQUIRED)")
+	cmd.Flags.Uint64Var(&p.projectId, "id", ctx.Profile.ActiveProject, "The project ID (REQUIRED)")
 	cmd.Flags.BoolVar(&p.read, "read", false, "Read permission")
 	cmd.Flags.BoolVar(&p.write, "write", false, "Write permission")
 	cmd.Flags.BoolVar(&p.admin, "admin", false, "Admin permissions")
