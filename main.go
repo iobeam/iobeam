@@ -48,7 +48,7 @@ func main() {
 			"query":   command.NewExportCommand(ctx),
 			"profile": command.NewConfigCommand(),
 			"project": command.NewProjectsCommand(),
-			"user":    command.NewUsersCommand(),
+			"user":    command.NewUsersCommand(ctx),
 		},
 	}
 

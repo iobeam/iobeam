@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/iobeam/iobeam/client"
 	"os"
-	"strconv"
 )
 
 type userData struct {
@@ -20,9 +19,10 @@ type userData struct {
 	LastName    string `json:"last_name,omitempty"`
 	CompanyName string `json:"company_name,omitempty"`
 	// Private fields, not marshalled into JSON
-	isUpdate bool
-	isGet    bool
-	isSearch bool
+	isUpdate   bool
+	isGet      bool
+	isSearch   bool
+	activeUser uint64
 }
 
 func (u *userData) IsValid() bool {
@@ -35,7 +35,7 @@ func (u *userData) IsValid() bool {
 			len(u.LastName) > 0 ||
 			len(u.CompanyName) > 0
 	} else if u.isGet {
-		return true
+		return u.activeUser != 0 || len(u.Username) > 0
 	} else if u.isSearch {
 		return len(u.Username) > 0
 	} else { // create new user
@@ -44,13 +44,13 @@ func (u *userData) IsValid() bool {
 }
 
 // NewUsersCommand returns the base 'user' command.
-func NewUsersCommand() *Command {
+func NewUsersCommand(ctx *Context) *Command {
 	cmd := &Command{
 		Name:  "user",
 		Usage: "Commands for managing users.",
 		SubCommands: Mux{
 			"create":       newCreateUserCmd(),
-			"get":          newGetUserCmd(),
+			"get":          newGetUserCmd(ctx),
 			"login":        newGetUserTokenCmd(),
 			"reset-pw":     newNewPasswordCmd(),
 			"update":       newUpdateUserCmd(),
@@ -181,10 +181,19 @@ func createUser(c *Command, ctx *Context) error {
 	return err
 }
 
-func newGetUserCmd() *Command {
+type getData struct {
+	self     bool
+	username string
+}
 
-	user := userData{
-		isGet: true,
+func (d *getData) IsValid() bool {
+	return d.self || len(d.username) > 0
+}
+
+func newGetUserCmd(ctx *Context) *Command {
+
+	user := getData{
+		self: (ctx.Profile.ActiveUser != 0),
 	}
 
 	cmd := &Command{
@@ -196,37 +205,32 @@ func newGetUserCmd() *Command {
 		Action:  getUser,
 	}
 
-	cmd.Flags.Uint64Var(&user.UserId, "id", 0, "The ID of the user to query")
-	cmd.Flags.StringVar(&user.Username, "name", "", "The username or email of the user to query")
+	cmd.Flags.StringVar(&user.username, "name", "", "Username or email of the user to query")
 
 	return cmd
 }
 
 func getUser(c *Command, ctx *Context) error {
-
-	user := c.Data.(*userData)
-
+	user := c.Data.(*getData)
 	req := ctx.Client.Get(c.ApiPath)
-
-	if user.UserId != 0 {
-		req = ctx.Client.Get(c.ApiPath + "/" + strconv.FormatUint(user.UserId, 10))
-	} else if len(user.Username) > 0 {
-		req.Param("name", user.Username)
-	} else {
+	if len(user.username) > 0 {
+		req.Param("name", user.username)
+	} else { // self lookup
 		req = ctx.Client.Get(c.ApiPath + "/me")
 	}
 
+	rsp := new(userData)
 	_, err := req.
 		UserToken(ctx.Profile).
 		Expect(200).
-		ResponseBody(c.Data).
-		ResponseBodyHandler(func(interface{}) error {
-
-		fmt.Printf("Username: %v\n"+
-			"User ID: %v\n"+
-			"Email: %v\n"+
+		ResponseBody(rsp).
+		ResponseBodyHandler(func(body interface{}) error {
+		user := body.(*userData)
+		fmt.Printf("Username  : %v\n"+
+			"User ID   : %v\n"+
+			"Email     : %v\n"+
 			"First name: %v\n"+
-			"Last name: %v\n",
+			"Last name : %v\n",
 			user.Username,
 			user.UserId,
 			user.Email,
@@ -274,7 +278,6 @@ func searchUsers(c *Command, ctx *Context) error {
 		Expect(200).
 		ResponseBody(user).
 		ResponseBodyHandler(func(interface{}) error {
-
 		for _, u := range user.Users {
 			fmt.Printf("\nUsername: %v\n"+
 				"User ID: %v\n"+
@@ -318,7 +321,6 @@ func newVerifyEmailCmd() *Command {
 func verifyEmail(c *Command, ctx *Context) error {
 	_, err := ctx.Client.
 		Post(c.ApiPath).
-		UserToken(ctx.Profile).
 		Expect(204).
 		Body(c.Data).
 		Execute()
