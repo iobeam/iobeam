@@ -44,7 +44,7 @@ func main() {
 		Usage: "iobeam Command-Line Interface (CLI)",
 		Flags: nil,
 		SubCommands: command.Mux{
-			"device":  command.NewDevicesCommand(),
+			"device":  command.NewDevicesCommand(ctx),
 			"query":   command.NewExportCommand(ctx),
 			"profile": command.NewConfigCommand(),
 			"project": command.NewProjectsCommand(),
