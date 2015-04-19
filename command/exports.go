@@ -15,7 +15,6 @@ type exportData struct {
 }
 
 func (e *exportData) IsValid() bool {
-	// TODO: Add conditional to check that device ID must be set if series is.
 	return e.projectId > 0 && e.limit > 0
 }
 
@@ -47,12 +46,13 @@ func getExport(c *Command, ctx *Context) error {
 	e := c.Data.(*exportData)
 
 	reqPath := c.ApiPath + "/" + strconv.FormatUint(e.projectId, 10)
+	device := "all"
 	if len(e.deviceId) > 0 {
-		reqPath += "/" + e.deviceId
-
-		if len(e.series) > 0 {
-			reqPath += "/" + e.series
-		}
+		device = e.deviceId
+	}
+	reqPath += "/" + device
+	if len(e.series) > 0 {
+		reqPath += "/" + e.series
 	}
 
 	x := make(map[string]interface{})
