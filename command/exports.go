@@ -32,7 +32,7 @@ func NewExportCommand(ctx *Context) *Command {
 	}
 
 	pid := ctx.Profile.ActiveProject
-	cmd.Flags.Uint64Var(&e.projectId, "projectId", pid, "Project ID (REQUIRED - defaults to active project)")
+	cmd.Flags.Uint64Var(&e.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
 	cmd.Flags.StringVar(&e.deviceId, "deviceId", "", "Device ID")
 	cmd.Flags.StringVar(&e.series, "series", "", "Series name")
 	cmd.Flags.Uint64Var(&e.limit, "limit", 10, "Max number of results")

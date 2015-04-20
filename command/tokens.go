@@ -94,7 +94,7 @@ func newGetProjectTokenCmd(ctx *Context) *Command {
 		Action:  getProjectToken,
 	}
 
-	cmd.Flags.Uint64Var(&p.projectId, "id", ctx.Profile.ActiveProject, "The project ID (REQUIRED)")
+	cmd.Flags.Uint64Var(&p.projectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
 	cmd.Flags.BoolVar(&p.read, "read", false, "Read permission")
 	cmd.Flags.BoolVar(&p.write, "write", false, "Write permission")
 	cmd.Flags.BoolVar(&p.admin, "admin", false, "Admin permissions")

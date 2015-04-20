@@ -63,7 +63,7 @@ func newCreateOrUpdateProjectCmd(ctx *Context, name string, action CommandAction
 
 	if update {
 		cmd.Flags.Uint64Var(&proj.ProjectId, "id", ctx.Profile.ActiveProject,
-			"The project ID (REQUIRED)")
+			"Project ID (if omitted, defaults to active project)")
 	}
 	cmd.Flags.StringVar(&proj.ProjectName, "name", "", "The name of the new project")
 
@@ -144,7 +144,7 @@ func newGetProjectCmd(ctx *Context) *Command {
 		Action:  getProject,
 	}
 
-	cmd.Flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "The project ID")
+	cmd.Flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
 	cmd.Flags.StringVar(&p.ProjectName, "name", "", "Project name")
 
 	return cmd
@@ -295,7 +295,7 @@ func newProjectPermissionsCmd(ctx *Context) *Command {
 		Action:  getProjectPermissions,
 	}
 
-	cmd.Flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "The project ID")
+	cmd.Flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
 
 	return cmd
 }

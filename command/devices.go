@@ -56,7 +56,7 @@ func newCreateOrUpdateDeviceCmd(ctx *Context, update bool, name string, action C
 	}
 
 	flags := flag.NewFlagSet("device", flag.ExitOnError)
-	flags.Uint64Var(&device.ProjectId, "projectId", ctx.Profile.ActiveProject, "The project associated with the device (REQUIRED).")
+	flags.Uint64Var(&device.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID associated with the device (if omitted, defaults to active project).")
 	flags.StringVar(&device.DeviceName, "name", "", "The device name")
 	flags.StringVar(&device.DeviceType, "type", "", "The type of device")
 	if !update {
@@ -136,7 +136,7 @@ func newGetDeviceCmd() *Command {
 		Action:  getDevice,
 	}
 
-	cmd.Flags.StringVar(&data.id, "id", "", "The ID of the device to query (REQUIRED)")
+	cmd.Flags.StringVar(&data.id, "id", "", "Device ID to query (REQUIRED)")
 
 	return cmd
 }
@@ -189,7 +189,7 @@ func newListDevicesCmd(ctx *Context) *Command {
 	}
 
 	cmd.Flags.Uint64Var(&data.projectId, "projectId", ctx.Profile.ActiveProject,
-		"Project id to get devices from (REQUIRED)")
+		"Project ID to get devices from (if omitted, defaults to active project)")
 
 	return cmd
 }
