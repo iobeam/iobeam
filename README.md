@@ -20,6 +20,9 @@ Then,
 Note: A dot directory, `.iobeam`, is created under your user's home directory to
 store state such as user and project tokens which authenticate you to the iobeam cloud.
 
+**Note: If you had this installed previously, you may need to move it. Its old path was
+`$GOPATH/src/iobeam.com/iobeam`, you will need to move this to `$GOPATH/src/github.com/iobeam/iobeam`.**
+
 ## Getting Started ##
 
 ### Creating your first project and device ###
