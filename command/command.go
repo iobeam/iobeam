@@ -42,7 +42,7 @@ type Command struct {
 	Action      CommandAction
 }
 
-func (c *Command) printUsage() {
+func (c *Command) PrintUsage() {
 
 	if c.SubCommands != nil {
 		fmt.Fprintf(os.Stderr, "Usage: %s COMMAND [FLAGS]\n\n", c.Name)
@@ -103,7 +103,7 @@ func (c *Command) Execute(ctx *Context) error {
 			return sc.Execute(ctx)
 		}
 	}
-	c.printUsage()
+	c.PrintUsage()
 
 	return nil
 }
