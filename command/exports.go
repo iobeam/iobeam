@@ -19,12 +19,11 @@ func (e *exportData) IsValid() bool {
 }
 
 // NewExportCommand returns the base 'export' command.
-func NewExportCommand() *Command {
-
+func NewExportCommand(ctx *Context) *Command {
 	e := new(exportData)
 
 	cmd := &Command{
-		Name:    "export",
+		Name:    "query",
 		ApiPath: "/v1/exports",
 		Usage:   "Get data for projects, devices, and series",
 		Data:    e,
@@ -32,7 +31,8 @@ func NewExportCommand() *Command {
 		Action:  getExport,
 	}
 
-	cmd.Flags.Uint64Var(&e.projectId, "projectId", 0, "Project ID (REQUIRED)")
+	pid := ctx.Profile.ActiveProject
+	cmd.Flags.Uint64Var(&e.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
 	cmd.Flags.StringVar(&e.deviceId, "deviceId", "", "Device ID")
 	cmd.Flags.StringVar(&e.series, "series", "", "Series name")
 	cmd.Flags.Uint64Var(&e.limit, "limit", 10, "Max number of results")

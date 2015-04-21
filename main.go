@@ -32,24 +32,24 @@ func main() {
 	profile := getActiveProfile()
 	server := profile.Server
 
-	cmd := &command.Command{
-		Name:  os.Args[0],
-		Usage: "iobeam Command-Line Interface",
-		Flags: nil,
-		SubCommands: command.Mux{
-			"device":  command.NewDevicesCommand(),
-			"export":  command.NewExportCommand(),
-			"profile": command.NewConfigCommand(),
-			"project": command.NewProjectsCommand(),
-			"user":    command.NewUsersCommand(),
-		},
-	}
-
 	ctx := &command.Context{
 		Client:  client.NewClient(&server),
 		Args:    os.Args,
 		Profile: profile,
 		Index:   0,
+	}
+
+	cmd := &command.Command{
+		Name:  os.Args[0],
+		Usage: "iobeam Command-Line Interface (CLI)\nUse the -help flag for usage flags and syntax.",
+		Flags: nil,
+		SubCommands: command.Mux{
+			"device":  command.NewDevicesCommand(ctx),
+			"query":   command.NewExportCommand(ctx),
+			"profile": command.NewConfigCommand(),
+			"project": command.NewProjectsCommand(ctx),
+			"user":    command.NewUsersCommand(ctx),
+		},
 	}
 
 	flag.Usage = func() {

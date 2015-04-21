@@ -17,9 +17,10 @@ type projectData struct {
 }
 
 func (u *projectData) IsValid() bool {
-	if u.isUpdate || u.isGet {
-		return len(u.ProjectName) > 0 ||
-			u.ProjectId != 0
+	if u.isGet {
+		return len(u.ProjectName) > 0 || u.ProjectId != 0
+	} else if u.isUpdate {
+		return len(u.ProjectName) > 0 && u.ProjectId != 0
 	} else if u.isPermissions {
 		return u.ProjectId != 0
 	}
@@ -28,26 +29,25 @@ func (u *projectData) IsValid() bool {
 }
 
 // NewProjectCommand returns the base 'project' command.
-func NewProjectsCommand() *Command {
+func NewProjectsCommand(ctx *Context) *Command {
 	cmd := &Command{
 		Name:  "project",
 		Usage: "Commands for managing projects.",
 		SubCommands: Mux{
 			"create":      newCreateProjectCmd(),
-			"get":         newGetProjectCmd(),
+			"get":         newGetProjectCmd(ctx),
 			"list":        newListProjectsCmd(),
-			"permissions": newProjectPermissionsCmd(),
-			"token":       newGetProjectTokenCmd(),
-			"update":      newUpdateProjectCmd(),
+			"permissions": newProjectPermissionsCmd(ctx),
+			"token":       newGetProjectTokenCmd(ctx),
+			"update":      newUpdateProjectCmd(ctx),
 		},
 	}
 
 	return cmd
 }
 
-func newCreateOrUpdateProjectCmd(update bool, name string,
-	action CommandAction) *Command {
-
+func newCreateOrUpdateProjectCmd(ctx *Context, name string, action CommandAction) *Command {
+	update := ctx != nil
 	proj := projectData{
 		isUpdate: update,
 	}
@@ -62,8 +62,8 @@ func newCreateOrUpdateProjectCmd(update bool, name string,
 	}
 
 	if update {
-		cmd.Flags.Uint64Var(&proj.ProjectId, "id", 0,
-			"The project ID (REQUIRED)")
+		cmd.Flags.Uint64Var(&proj.ProjectId, "id", ctx.Profile.ActiveProject,
+			"Project ID (if omitted, defaults to active project)")
 	}
 	cmd.Flags.StringVar(&proj.ProjectName, "name", "", "The name of the new project")
 
@@ -71,11 +71,11 @@ func newCreateOrUpdateProjectCmd(update bool, name string,
 }
 
 func newCreateProjectCmd() *Command {
-	return newCreateOrUpdateProjectCmd(false, "create", createProject)
+	return newCreateOrUpdateProjectCmd(nil, "create", createProject)
 }
 
-func newUpdateProjectCmd() *Command {
-	return newCreateOrUpdateProjectCmd(true, "update", updateProject)
+func newUpdateProjectCmd(ctx *Context) *Command {
+	return newCreateOrUpdateProjectCmd(ctx, "update", updateProject)
 }
 
 func createProject(c *Command, ctx *Context) error {
@@ -95,7 +95,7 @@ func createProject(c *Command, ctx *Context) error {
 
 		fmt.Println("Acquiring project token...")
 		// Get new token for project.
-		tokenCmd := newGetProjectTokenCmd()
+		tokenCmd := newGetProjectTokenCmd(ctx)
 		p := tokenCmd.Data.(*projectPermissions)
 		p.projectId = project.ProjectId
 		p.admin = true
@@ -129,7 +129,7 @@ func updateProject(c *Command, ctx *Context) error {
 	return err
 }
 
-func newGetProjectCmd() *Command {
+func newGetProjectCmd(ctx *Context) *Command {
 
 	p := projectData{
 		isGet: true,
@@ -144,8 +144,8 @@ func newGetProjectCmd() *Command {
 		Action:  getProject,
 	}
 
-	cmd.Flags.Uint64Var(&p.ProjectId, "id", 0, "The project ID")
-	cmd.Flags.StringVar(&p.ProjectName, "name", "", "Project name prefix")
+	cmd.Flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
+	cmd.Flags.StringVar(&p.ProjectName, "name", "", "Project name")
 
 	return cmd
 }
@@ -154,14 +154,10 @@ func getProject(c *Command, ctx *Context) error {
 
 	p := c.Data.(*projectData)
 	var req *client.Request
-
-	if p.ProjectId != 0 {
-		req = ctx.Client.
-			Get(c.ApiPath + "/" + strconv.FormatUint(p.ProjectId, 10))
+	if len(p.ProjectName) > 0 {
+		req = ctx.Client.Get(c.ApiPath).Param("name", p.ProjectName)
 	} else {
-		req = ctx.Client.
-			Get(c.ApiPath).
-			Param("name", p.ProjectName)
+		req = ctx.Client.Get(c.ApiPath + "/" + strconv.FormatUint(p.ProjectId, 10))
 	}
 
 	type projectResult struct {
@@ -216,8 +212,7 @@ func getProject(c *Command, ctx *Context) error {
 		fmt.Printf("\n")
 
 		return nil
-	}).
-		Execute()
+	}).Execute()
 
 	return err
 }
@@ -285,7 +280,7 @@ func listProjects(c *Command, ctx *Context) error {
 	return err
 }
 
-func newProjectPermissionsCmd() *Command {
+func newProjectPermissionsCmd(ctx *Context) *Command {
 
 	p := projectData{
 		isPermissions: true,
@@ -300,7 +295,7 @@ func newProjectPermissionsCmd() *Command {
 		Action:  getProjectPermissions,
 	}
 
-	cmd.Flags.Uint64Var(&p.ProjectId, "id", 0, "The project ID")
+	cmd.Flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
 
 	return cmd
 }
@@ -332,21 +327,21 @@ func getProjectPermissions(c *Command, ctx *Context) error {
 
 		result := body.(*permissionsResult)
 
-		fmt.Printf("%10v %-6v", "Permission", "UserIds")
+		fmt.Printf("%10v | %-6v", "Permission", "UserIds")
 
-		fmt.Printf("\n%10v ", "READ")
+		fmt.Printf("\n%10v | ", "READ")
 
 		for _, r := range result.Permissions.Read {
 			fmt.Printf("%v ", r.UserId)
 		}
 
-		fmt.Printf("\n%10v ", "WRITE")
+		fmt.Printf("\n%10v | ", "WRITE")
 
 		for _, w := range result.Permissions.Write {
 			fmt.Printf("%v ", w.UserId)
 		}
 
-		fmt.Printf("\n%10v ", "ADMIN")
+		fmt.Printf("\n%10v | ", "ADMIN")
 
 		for _, a := range result.Permissions.Admin {
 			fmt.Printf("%v ", a.UserId)
