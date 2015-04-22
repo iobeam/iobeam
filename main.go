@@ -47,9 +47,10 @@ func main() {
 		Flags: flags,
 		SubCommands: command.Mux{
 			"device":  command.NewDevicesCommand(ctx),
-			"query":   command.NewExportCommand(ctx),
+			"import":  command.NewImportCommand(ctx),
 			"profile": command.NewConfigCommand(),
 			"project": command.NewProjectsCommand(ctx),
+			"query":   command.NewExportCommand(ctx),
 			"user":    command.NewUsersCommand(ctx),
 		},
 	}
