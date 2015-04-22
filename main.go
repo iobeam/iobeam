@@ -39,10 +39,12 @@ func main() {
 		Index:   0,
 	}
 
+	flags := flag.NewFlagSet("iobeam", flag.ExitOnError)
+
 	cmd := &command.Command{
 		Name:  os.Args[0],
 		Usage: "iobeam Command-Line Interface (CLI)\nUse the -help flag for usage flags and syntax.",
-		Flags: nil,
+		Flags: flags,
 		SubCommands: command.Mux{
 			"device":  command.NewDevicesCommand(ctx),
 			"query":   command.NewExportCommand(ctx),
@@ -52,9 +54,8 @@ func main() {
 		},
 	}
 
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-		flag.PrintDefaults()
+	flags.Usage = func() {
+		cmd.PrintUsage()
 	}
 
 	if len(ctx.Args) < 1 {
