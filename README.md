@@ -30,11 +30,13 @@ store state such as user and project tokens which authenticate you to the iobeam
     # Register as a new user, this will automatically log you in.
     $ iobeam user create -email="<email>" -password="<password>"
 
-    # Optionally, if you have an account already, you can just login
-    $ iobeam user login -email="<email>" -password="<password>"
+    # Optionally, if you have an account already, you can just login.
+    # You will be prompted for your credentials
+    $ iobeam user login
 
     # Create a new project. Project name must be globally unique.
-    # You will be given a project ID (keep track of it), and a project token will be stored.
+    # You will be given a project ID (keep track of it), and a 
+    # project token will be stored.
     $ iobeam project create -name="<project_name>"
 
     # Create a new device. (Keep track of the device_id that the API returns.)
@@ -42,7 +44,20 @@ store state such as user and project tokens which authenticate you to the iobeam
     
 ### Sending data ###
 
-Please refer to our [Imports API](http://docs.iobeam.com/imports).
+You can send single data points via the CLI. Timestamps are expressed in UNIX
+time, which is seconds from epoch.
+
+    # Send data point of value 12.5 with the current time
+    $ iobeam import -projectId=<projectId> -deviceId=<deviceId> -series=<series name> -value=12.5
+
+    # Send data point with value 12.5 at unix time 1429718512829
+    $ iobeam import -projectId=<projectId> -deviceId=<deviceId> -series=<series name> -time=1429718512829 -value=12.5
+
+    # Optionally, you can leave the -projectId off and it will default to the
+    # last project you got a token for
+    $ iobeam import -deviceId=<deviceId> -series=<series name> -value=12.5
+
+You can also refer to our [Imports API](http://docs.iobeam.com/imports).
 
 ### Querying data ###
 
@@ -51,13 +66,17 @@ This will be created when you create the project, however if this does not work 
 the next section.*
 
     # Query all device data under a given project
-    $ iobeam export -projectId=<project_id>
+    $ iobeam query -projectId=<project_id>
+
+    # You can also leave off -projectId, which will use the projectId of the
+    # last project you got a token for.
+    $ iobema query
 
     # Query all data streams under a given project and device
-    $ iobeam export -projectId=<project_id> -deviceId="<device_id>"
+    $ iobeam query -projectId=<project_id> -deviceId="<device_id>"
     
     # Query a specific data stream under a given project and device
-    $ iobeam export -projectId=<project_id> -deviceId="<device_id>" -series="<series_name>"
+    $ iobeam query -projectId=<project_id> -deviceId="<device_id>" -series="<series_name>"
 
 The REST API also supports richer queries with operators (e.g., `mean`, `min`, `max`), date / value
 ranges, time-series rollups, and more. Please refer to our [Exports API](http://docs.iobeam.com/exports/) 
