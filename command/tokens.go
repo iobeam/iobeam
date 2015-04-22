@@ -1,20 +1,20 @@
 package command
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"github.com/iobeam/iobeam/client"
+	"os"
 )
 
 type basicAuthData struct {
 	username string
-	email    string
 	password string
 }
 
 func (t *basicAuthData) IsValid() bool {
-	validUsername := len(t.email) > 0 || len(t.username) > 0
-	return validUsername && len(t.password) > 0
+	return true
 }
 
 func newGetUserTokenCmd() *Command {
@@ -23,30 +23,41 @@ func newGetUserTokenCmd() *Command {
 	cmd := &Command{
 		Name:    "login",
 		ApiPath: "/v1/tokens/user",
-		Usage:   "Log in as a user / switch active user",
+		Usage:   "Log in as a user / switch active user. If flag is not set, you will be prompted for email/username.",
 		Data:    t,
-		Flags:   flag.NewFlagSet("tokens", flag.ExitOnError),
+		Flags:   flag.NewFlagSet("user login", flag.ExitOnError),
 		Action:  getUserToken,
 	}
 
-	cmd.Flags.StringVar(&t.username, "username", "", "Username (REQUIRED, if no -email)")
-	cmd.Flags.StringVar(&t.email, "email", "", "Email (REQUIRED, if no -username)")
-	cmd.Flags.StringVar(&t.password, "password", "", "Password (REQUIRED)")
+	cmd.Flags.StringVar(&t.username, "username", "", "Login username or email")
 
 	return cmd
 }
 
 func getUserToken(c *Command, ctx *Context) error {
-
 	t := c.Data.(*basicAuthData)
-	name := t.email
-	if len(name) == 0 {
-		name = t.username
-	}
 
-	_, err := ctx.Client.
+	if len(t.username) == 0 {
+		bio := bufio.NewReader(os.Stdin)
+		fmt.Printf("Username/email: ")
+		line, _, err := bio.ReadLine()
+		if err != nil {
+			return err
+		}
+		t.username = string(line)
+	}
+	// FIXME: do not echo old password
+	bio := bufio.NewReader(os.Stdin)
+	fmt.Printf("Password: ")
+	line, _, err := bio.ReadLine()
+	if err != nil {
+		return err
+	}
+	t.password = string(line)
+
+	_, err = ctx.Client.
 		Get(c.ApiPath).
-		BasicAuth(name, t.password).
+		BasicAuth(t.username, t.password).
 		Expect(200).
 		ResponseBody(new(client.AuthToken)).
 		ResponseBodyHandler(func(token interface{}) error {
