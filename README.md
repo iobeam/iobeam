@@ -44,13 +44,13 @@ store state such as user and project tokens which authenticate you to the iobeam
     
 ### Sending data ###
 
-You can send single data points via the CLI. Timestamps are expressed in UNIX
-time, which is seconds from epoch.
+You can send single data points via the CLI. Timestamps are expressed as milliseconds since
+epoch.
 
     # Send data point of value 12.5 with the current time
     $ iobeam import -projectId=<projectId> -deviceId=<deviceId> -series=<series name> -value=12.5
 
-    # Send data point with value 12.5 at unix time 1429718512829
+    # Send data point with value 12.5 at time 1429718512829
     $ iobeam import -projectId=<projectId> -deviceId=<deviceId> -series=<series name> -time=1429718512829 -value=12.5
 
     # Optionally, you can leave the -projectId off and it will default to the
