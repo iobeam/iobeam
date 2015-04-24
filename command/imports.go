@@ -36,7 +36,7 @@ func NewImportCommand(ctx *Context) *Command {
 	cmd.Flags.Uint64Var(&d.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
 	cmd.Flags.StringVar(&d.deviceId, "deviceId", "", "Device ID (REQUIRED)")
 	cmd.Flags.StringVar(&d.series, "series", "", "Series name (REQUIRED)")
-	cmd.Flags.Int64Var(&d.timestamp, "time", now, "Timestamp of the data (if omitted, defaults to current time)")
+	cmd.Flags.Int64Var(&d.timestamp, "time", now, "Timestamp, in milliseconds, of the data (if omitted, defaults to current time)")
 	cmd.Flags.Float64Var(&d.value, "value", 0.0, "Data value (REQUIRED)")
 
 	return cmd
