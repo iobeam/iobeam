@@ -5,8 +5,19 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 )
+
+const (
+	opSum   = "sum"
+	opCount = "count"
+	opMin   = "min"
+	opMax   = "max"
+	opMean  = "mean"
+)
+
+var ops = []string{opSum, opCount, opMin, opMax, opMean}
 
 type exportData struct {
 	projectId uint64
@@ -19,6 +30,9 @@ type exportData struct {
 	lessThan    int64
 	greaterThan int64
 	equal       string
+
+	operator string
+	groupBy  string
 }
 
 func (e *exportData) IsValid() bool {
@@ -26,12 +40,29 @@ func (e *exportData) IsValid() bool {
 	limitOk := e.limit > 0
 	rangeOk := e.from <= e.to
 	valRangeOk := e.greaterThan <= e.greaterThan
+
 	equalOk := len(e.equal) == 0
 	if !equalOk {
 		_, err := strconv.ParseInt(e.equal, 0, 64)
 		equalOk = err == nil
 	}
-	return pidOk && limitOk && rangeOk && valRangeOk && equalOk
+
+	opOk := len(e.operator) == 0
+	if !opOk {
+		for _, o := range ops {
+			if o == e.operator {
+				opOk = true
+				break
+			}
+		}
+	}
+
+	groupOk := len(e.groupBy) == 0
+	if !groupOk {
+		_, err := time.ParseDuration(e.groupBy)
+		groupOk = err == nil && len(e.operator) > 0
+	}
+	return pidOk && limitOk && rangeOk && valRangeOk && equalOk && opOk && groupOk
 }
 
 // NewExportCommand returns the base 'export' command.
@@ -59,6 +90,8 @@ func NewExportCommand(ctx *Context) *Command {
 	flags.Int64Var(&e.lessThan, "lessThan", math.MaxInt64, "Max value for datapoints")
 	flags.Int64Var(&e.greaterThan, "greaterThan", math.MinInt64, "Min value for datapoints")
 	flags.StringVar(&e.equal, "equalTo", "", "Datapoints with this value")
+	flags.StringVar(&e.operator, "operator", "", "Aggregation function to apply to datapoints: "+strings.Join(ops, ", "))
+	flags.StringVar(&e.groupBy, "groupBy", "", "Group data by [number][period], where the time period can be ms, s, m, or h (e.g., 30s, 15m, 6h). Requires a valid operator.")
 	return cmd
 }
 
@@ -84,10 +117,19 @@ func getExport(c *Command, ctx *Context) error {
 		ParamUint64("to", e.to).
 		ParamInt64("less_than", e.lessThan).
 		ParamInt64("greater_than", e.greaterThan)
+
 	if len(e.equal) > 0 {
 		temp, _ := strconv.ParseInt(e.equal, 0, 64)
 		fmt.Println(temp)
 		req = req.ParamInt64("equals", temp)
+	}
+
+	if len(e.operator) > 0 {
+		req = req.Param("operator", e.operator)
+
+		if len(e.groupBy) > 0 {
+			req = req.Param("group_by", e.groupBy)
+		}
 	}
 
 	x := make(map[string]interface{})
