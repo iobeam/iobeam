@@ -2,7 +2,6 @@ package command
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"github.com/iobeam/iobeam/client"
 	"os"
@@ -25,11 +24,10 @@ func newGetUserTokenCmd() *Command {
 		ApiPath: "/v1/tokens/user",
 		Usage:   "Log in as a user / switch active user. If flag is not set, you will be prompted for email/username.",
 		Data:    t,
-		Flags:   flag.NewFlagSet("user login", flag.ExitOnError),
 		Action:  getUserToken,
 	}
-
-	cmd.Flags.StringVar(&t.username, "username", "", "Login username or email")
+	flags := cmd.NewFlagSet("iobeam user login")
+	flags.StringVar(&t.username, "username", "", "Login username or email")
 
 	return cmd
 }
@@ -101,14 +99,13 @@ func newGetProjectTokenCmd(ctx *Context) *Command {
 		ApiPath: "/v1/tokens/project",
 		Usage:   "Get a project token.",
 		Data:    p,
-		Flags:   flag.NewFlagSet("tokens", flag.ExitOnError),
 		Action:  getProjectToken,
 	}
-
-	cmd.Flags.Uint64Var(&p.projectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
-	cmd.Flags.BoolVar(&p.read, "read", false, "Read permission")
-	cmd.Flags.BoolVar(&p.write, "write", false, "Write permission")
-	cmd.Flags.BoolVar(&p.admin, "admin", false, "Admin permissions")
+	flags := cmd.NewFlagSet("iobeam project token")
+	flags.Uint64Var(&p.projectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
+	flags.BoolVar(&p.read, "read", false, "Read permission")
+	flags.BoolVar(&p.write, "write", false, "Write permission")
+	flags.BoolVar(&p.admin, "admin", false, "Admin permissions")
 
 	return cmd
 }

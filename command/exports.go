@@ -2,7 +2,6 @@ package command
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"strconv"
 )
@@ -21,21 +20,21 @@ func (e *exportData) IsValid() bool {
 // NewExportCommand returns the base 'export' command.
 func NewExportCommand(ctx *Context) *Command {
 	e := new(exportData)
+	pid := ctx.Profile.ActiveProject
 
 	cmd := &Command{
 		Name:    "query",
 		ApiPath: "/v1/exports",
 		Usage:   "Get data for projects, devices, and series",
 		Data:    e,
-		Flags:   flag.NewFlagSet("exports", flag.ExitOnError),
 		Action:  getExport,
 	}
 
-	pid := ctx.Profile.ActiveProject
-	cmd.Flags.Uint64Var(&e.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
-	cmd.Flags.StringVar(&e.deviceId, "deviceId", "", "Device ID")
-	cmd.Flags.StringVar(&e.series, "series", "", "Series name")
-	cmd.Flags.Uint64Var(&e.limit, "limit", 10, "Max number of results")
+	flags := cmd.NewFlagSet("iobeam query")
+	flags.Uint64Var(&e.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
+	flags.StringVar(&e.deviceId, "deviceId", "", "Device ID")
+	flags.StringVar(&e.series, "series", "", "Series name")
+	flags.Uint64Var(&e.limit, "limit", 10, "Max number of results")
 
 	return cmd
 }

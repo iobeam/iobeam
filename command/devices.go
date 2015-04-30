@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 )
 
@@ -45,28 +44,14 @@ func NewDevicesCommand(ctx *Context) *Command {
 			"update": newUpdateDeviceCmd(ctx),
 		},
 	}
+	cmd.NewFlagSet("iobeam device")
 
 	return cmd
 }
 
 func newCreateOrUpdateDeviceCmd(ctx *Context, update bool, name string, action CommandAction) *Command {
-
 	device := deviceData{
 		isUpdate: update,
-	}
-
-	flags := flag.NewFlagSet("device", flag.ExitOnError)
-	var idDesc string
-	if update {
-		idDesc = "ID of the device to be updated"
-	} else {
-		idDesc = "Device ID, if omitted a random one will be assigned (must be > 16 chars)"
-	}
-	flags.StringVar(&device.DeviceId, "id", "", idDesc)
-	flags.StringVar(&device.DeviceName, "name", "", "The device name")
-	flags.StringVar(&device.DeviceType, "type", "", "The type of device")
-	if !update {
-		flags.Uint64Var(&device.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID associated with the device (if omitted, defaults to active project).")
 	}
 
 	cmd := &Command{
@@ -74,9 +59,19 @@ func newCreateOrUpdateDeviceCmd(ctx *Context, update bool, name string, action C
 		ApiPath: "/v1/devices",
 		Usage:   name + " device",
 		Data:    &device,
-		Flags:   flags,
 		Action:  action,
 	}
+	flags := cmd.NewFlagSet("iobeam device " + name)
+	var idDesc string
+	if update {
+		idDesc = "ID of the device to be updated"
+	} else {
+		idDesc = "Device ID, if omitted a random one will be assigned (must be > 16 chars)"
+		flags.Uint64Var(&device.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID associated with the device (if omitted, defaults to active project).")
+	}
+	flags.StringVar(&device.DeviceId, "id", "", idDesc)
+	flags.StringVar(&device.DeviceName, "name", "", "The device name")
+	flags.StringVar(&device.DeviceType, "type", "", "The type of device")
 
 	return cmd
 }
@@ -138,11 +133,10 @@ func newGetDeviceCmd() *Command {
 		ApiPath: "/v1/devices",
 		Usage:   "get device information",
 		Data:    data,
-		Flags:   flag.NewFlagSet("get", flag.ExitOnError),
 		Action:  getDevice,
 	}
-
-	cmd.Flags.StringVar(&data.id, "id", "", "Device ID to query (REQUIRED)")
+	flags := cmd.NewFlagSet("iobeam device get")
+	flags.StringVar(&data.id, "id", "", "Device ID to query (REQUIRED)")
 
 	return cmd
 }
@@ -190,11 +184,10 @@ func newListDevicesCmd(ctx *Context) *Command {
 		ApiPath: "/v1/devices",
 		Usage:   "List devices for a given project.",
 		Data:    data,
-		Flags:   flag.NewFlagSet("list", flag.ExitOnError),
 		Action:  listDevices,
 	}
-
-	cmd.Flags.Uint64Var(&data.projectId, "projectId", ctx.Profile.ActiveProject,
+	flags := cmd.NewFlagSet("iobeam device list")
+	flags.Uint64Var(&data.projectId, "projectId", ctx.Profile.ActiveProject,
 		"Project ID to get devices from (if omitted, defaults to active project)")
 
 	return cmd
@@ -244,11 +237,10 @@ func newDeleteDeviceCmd() *Command {
 		ApiPath: "/v1/devices",
 		Usage:   "delete device",
 		Data:    data,
-		Flags:   flag.NewFlagSet("delete", flag.ExitOnError),
 		Action:  deleteDevice,
 	}
-
-	cmd.Flags.StringVar(&data.id, "id", "", "The ID of the device to delete (REQUIRED)")
+	flags := cmd.NewFlagSet("iobeam device delete")
+	flags.StringVar(&data.id, "id", "", "The ID of the device to delete (REQUIRED)")
 
 	return cmd
 }

@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"github.com/iobeam/iobeam/client"
 	"strconv"
@@ -42,6 +41,7 @@ func NewProjectsCommand(ctx *Context) *Command {
 			"update":      newUpdateProjectCmd(ctx),
 		},
 	}
+	cmd.NewFlagSet("iobeam project")
 
 	return cmd
 }
@@ -57,15 +57,16 @@ func newCreateOrUpdateProjectCmd(ctx *Context, name string, action CommandAction
 		ApiPath: "/v1/projects",
 		Usage:   name + " project",
 		Data:    &proj,
-		Flags:   flag.NewFlagSet(name, flag.ExitOnError),
 		Action:  action,
 	}
 
+	flags := cmd.NewFlagSet("iobeam project " + name)
+
 	if update {
-		cmd.Flags.Uint64Var(&proj.ProjectId, "id", ctx.Profile.ActiveProject,
+		flags.Uint64Var(&proj.ProjectId, "id", ctx.Profile.ActiveProject,
 			"Project ID (if omitted, defaults to active project)")
 	}
-	cmd.Flags.StringVar(&proj.ProjectName, "name", "", "The name of the new project")
+	flags.StringVar(&proj.ProjectName, "name", "", "The name of the new project")
 
 	return cmd
 }
@@ -140,12 +141,11 @@ func newGetProjectCmd(ctx *Context) *Command {
 		ApiPath: "/v1/projects",
 		Usage:   "get information about a project",
 		Data:    &p,
-		Flags:   flag.NewFlagSet("get", flag.ExitOnError),
 		Action:  getProject,
 	}
-
-	cmd.Flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
-	cmd.Flags.StringVar(&p.ProjectName, "name", "", "Project name")
+	flags := cmd.NewFlagSet("iobeam project get")
+	flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
+	flags.StringVar(&p.ProjectName, "name", "", "Project name")
 
 	return cmd
 }
@@ -218,13 +218,15 @@ func getProject(c *Command, ctx *Context) error {
 }
 
 func newListProjectsCmd() *Command {
-
-	return &Command{
+	cmd := &Command{
 		Name:    "list",
 		ApiPath: "/v1/projects",
 		Usage:   "list projects",
 		Action:  listProjects,
 	}
+	cmd.NewFlagSet("iobeam project list")
+
+	return cmd
 }
 
 func listProjects(c *Command, ctx *Context) error {
@@ -291,11 +293,11 @@ func newProjectPermissionsCmd(ctx *Context) *Command {
 		ApiPath: "/v1/projects/%v/permissions",
 		Usage:   "get project permissions",
 		Data:    &p,
-		Flags:   flag.NewFlagSet("permissions", flag.ExitOnError),
 		Action:  getProjectPermissions,
 	}
 
-	cmd.Flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
+	flags := cmd.NewFlagSet("iobeam project permissions")
+	flags.Uint64Var(&p.ProjectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
 
 	return cmd
 }

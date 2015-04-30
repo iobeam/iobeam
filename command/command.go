@@ -36,10 +36,19 @@ type Command struct {
 	Name        string
 	Usage       string
 	ApiPath     string
-	Flags       *flag.FlagSet
+	flags       *flag.FlagSet
 	SubCommands Mux
 	Data        Data
 	Action      CommandAction
+}
+
+func (c *Command) NewFlagSet(name string) *flag.FlagSet {
+	f := flag.NewFlagSet(name, flag.ExitOnError)
+	f.Usage = func() {
+		c.PrintUsage()
+	}
+	c.flags = f
+	return f
 }
 
 func (c *Command) PrintUsage() {
@@ -66,9 +75,9 @@ func (c *Command) PrintUsage() {
 		fmt.Fprintf(os.Stderr, "%s\n", c.Usage)
 	}
 
-	if c.Flags != nil {
+	if c.flags != nil {
 		fmt.Fprint(os.Stderr, "\nAvailable Flags:\n")
-		c.Flags.PrintDefaults()
+		c.flags.PrintDefaults()
 	}
 }
 
@@ -109,8 +118,8 @@ func (c *Command) Execute(ctx *Context) error {
 }
 
 func (c *Command) parseFlags(ctx *Context) {
-	if c.Flags != nil {
-		c.Flags.Parse(ctx.Args[ctx.Index:])
-		ctx.Index += c.Flags.NFlag()
+	if c.flags != nil {
+		c.flags.Parse(ctx.Args[ctx.Index:])
+		ctx.Index += c.flags.NFlag()
 	}
 }
