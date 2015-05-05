@@ -17,7 +17,7 @@ type deviceData struct {
 
 func (d *deviceData) IsValid() bool {
 	if d.isUpdate {
-		return d.ProjectId != 0 &&
+		return len(d.DeviceId) > 0 &&
 			(len(d.DeviceName) > 0 || len(d.DeviceType) > 0)
 	}
 	return d.ProjectId != 0
@@ -56,11 +56,17 @@ func newCreateOrUpdateDeviceCmd(ctx *Context, update bool, name string, action C
 	}
 
 	flags := flag.NewFlagSet("device", flag.ExitOnError)
-	flags.Uint64Var(&device.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID associated with the device (if omitted, defaults to active project).")
+	var idDesc string
+	if update {
+		idDesc = "ID of the device to be updated"
+	} else {
+		idDesc = "Device ID, if omitted a random one will be assigned (must be > 16 chars)"
+	}
+	flags.StringVar(&device.DeviceId, "id", "", idDesc)
 	flags.StringVar(&device.DeviceName, "name", "", "The device name")
 	flags.StringVar(&device.DeviceType, "type", "", "The type of device")
 	if !update {
-		flags.StringVar(&device.DeviceId, "id", "", "The device's identifier")
+		flags.Uint64Var(&device.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID associated with the device (if omitted, defaults to active project).")
 	}
 
 	cmd := &Command{
@@ -211,13 +217,13 @@ func listDevices(c *Command, ctx *Context) error {
 		list := body.(*deviceList)
 
 		fmt.Printf("Devices in project %v\n", pid)
-
+		fmt.Println("-----")
 		for _, device := range list.Devices {
 
-			fmt.Printf("\nName: %v\n"+
+			fmt.Printf("Name: %v\n"+
 				"Device ID: %v\n"+
 				"Type: %v\n"+
-				"Created: %v\n",
+				"Created: %v\n\n",
 				device.DeviceName,
 				device.DeviceId,
 				device.DeviceType,
