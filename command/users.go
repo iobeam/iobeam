@@ -335,10 +335,12 @@ func verifyEmail(c *Command, ctx *Context) error {
 type pwData struct {
 	ResetKey string `json:"reset_key"`
 	Password string `json:"password"`
+
+	email string
 }
 
 func (p *pwData) IsValid() bool {
-	return len(p.ResetKey) > 0 && len(p.Password) > 0
+	return len(p.email) > 0 || (len(p.ResetKey) > 0 && len(p.Password) > 0)
 }
 
 func newNewPasswordCmd() *Command {
@@ -353,17 +355,52 @@ func newNewPasswordCmd() *Command {
 		Action:  resetPassword,
 	}
 
-	cmd.Flags.StringVar(&pw.ResetKey, "key", "", "Reset key from email")
-	cmd.Flags.StringVar(&pw.Password, "password", "", "New password")
+	cmd.Flags.StringVar(&pw.email, "email", "", "If starting: email to reset password for")
+	cmd.Flags.StringVar(&pw.ResetKey, "key", "", "If verifying: reset key from email")
 
 	return cmd
 }
 
 func resetPassword(c *Command, ctx *Context) error {
-	_, err := ctx.Client.
-		Post(c.ApiPath).
+	pw := c.Data.(*pwData)
+	if len(pw.ResetKey) > 0 {
+		return verifyResetPw(pw, ctx)
+	} else {
+		_, err := ctx.Client.
+			Get(c.ApiPath).
+			Expect(204).
+			Param("reset", pw.email).
+			Execute()
+
+		if err != nil {
+			return err
+		}
+
+		bio := bufio.NewReader(os.Stdin)
+		fmt.Printf("Verify key: ")
+		line, _, err := bio.ReadLine()
+		if err != nil {
+			return err
+		}
+		pw.ResetKey = string(line)
+
+		return verifyResetPw(pw, ctx)
+	}
+}
+
+func verifyResetPw(data *pwData, ctx *Context) error {
+	bio := bufio.NewReader(os.Stdin)
+	fmt.Printf("New password: ")
+	line, _, err := bio.ReadLine()
+	if err != nil {
+		return err
+	}
+	data.Password = string(line)
+
+	_, err = ctx.Client.
+		Post("/v1/users/password").
 		Expect(204).
-		Body(c.Data).
+		Body(data).
 		Execute()
 
 	if err == nil {
