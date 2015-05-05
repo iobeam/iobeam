@@ -17,6 +17,8 @@ const (
 	opMean  = "mean"
 )
 
+const max_duration_str = "24h"
+
 var ops = []string{opSum, opCount, opMin, opMax, opMean}
 
 type exportData struct {
@@ -79,14 +81,15 @@ func NewExportCommand(ctx *Context) *Command {
 	}
 
 	flags := cmd.NewFlagSet("iobeam query")
-	maxTime := uint64((time.Now().UnixNano() / int64(time.Millisecond)) + (1000 * 60 * 60 * 24))
+	max_duration, _ := time.ParseDuration(max_duration_str)
+	maxTime := time.Now().Add(max_duration).UnixNano() / int64(time.Millisecond)
 	flags.Uint64Var(&e.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
 	flags.StringVar(&e.deviceId, "deviceId", "", "Device ID")
 	flags.StringVar(&e.series, "series", "", "Series name")
 
 	flags.Uint64Var(&e.limit, "limit", 10, "Max number of results")
 	flags.Uint64Var(&e.from, "from", 0, "Min timestamp (unix time in milliseconds)")
-	flags.Uint64Var(&e.to, "to", maxTime, "Max timestamp (unix time in milliseconds, default is now + a day)")
+	flags.Uint64Var(&e.to, "to", uint64(maxTime), "Max timestamp (unix time in milliseconds, default is now + a day)")
 	flags.Int64Var(&e.lessThan, "lessThan", math.MaxInt64, "Max value for datapoints")
 	flags.Int64Var(&e.greaterThan, "greaterThan", math.MinInt64, "Min value for datapoints")
 	flags.StringVar(&e.equal, "equalTo", "", "Datapoints with this value")
