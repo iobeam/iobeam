@@ -33,6 +33,7 @@ func NewProjectsCommand(ctx *Context) *Command {
 		Name:  "project",
 		Usage: "Commands for managing projects.",
 		SubCommands: Mux{
+			"add-user":    newAddUserProjectCmd(ctx),
 			"create":      newCreateProjectCmd(),
 			"get":         newGetProjectCmd(ctx),
 			"list":        newListProjectsCmd(),
@@ -278,6 +279,66 @@ func listProjects(c *Command, ctx *Context) error {
 
 		return nil
 	}).Execute()
+
+	return err
+}
+
+type addUserData struct {
+	projectId uint64
+	UserId    uint64 `json:"user_id"`
+	Read      bool   `json:"read"`
+	Write     bool   `json:"write"`
+	Admin     bool   `json:"admin"`
+}
+
+func (d *addUserData) IsValid() bool {
+	return d.projectId > 0 && d.UserId > 0
+}
+
+func newAddUserProjectCmd(ctx *Context) *Command {
+	d := new(addUserData)
+	cmd := &Command{
+		Name:    "add-user",
+		ApiPath: "/v1/projects/%v/permissions",
+		Usage:   "Add/remove a user to a project. Setting all flags to false will remove a user from a project.",
+		Data:    d,
+		Action:  addUserProject,
+	}
+	flags := cmd.NewFlagSet("add-user")
+
+	flags.Uint64Var(&d.projectId, "id", ctx.Profile.ActiveProject, "Project ID (if omitted, defaults to active project)")
+	flags.Uint64Var(&d.UserId, "userId", 0, "User ID of user to add")
+	flags.BoolVar(&d.Read, "read", false, "Give user read permission")
+	flags.BoolVar(&d.Write, "write", false, "Give user write permission")
+	flags.BoolVar(&d.Admin, "admin", false, "Give user admin permission")
+
+	return cmd
+}
+
+func addUserProject(c *Command, ctx *Context) error {
+	d := c.Data.(*addUserData)
+
+	apiPath := fmt.Sprintf(c.ApiPath, strconv.FormatUint(d.projectId, 10))
+	rsp, err := ctx.Client.
+		Patch(apiPath).
+		UserToken(ctx.Profile).
+		Body(d).
+		Expect(200).Execute()
+
+	if err == nil {
+		hasPerms := d.Read || d.Write || d.Admin
+		if hasPerms {
+			fmt.Println("User's project permissions modified.")
+		} else {
+			fmt.Println("User removed from project.")
+		}
+	} else if rsp.Http().StatusCode == 201 {
+		fmt.Println("User successfully added to project.")
+		return nil
+	} else if rsp.Http().StatusCode == 204 {
+		fmt.Println("User's project permissions unchanged.")
+		return nil
+	}
 
 	return err
 }
