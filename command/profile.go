@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"github.com/iobeam/iobeam/config"
 	"strconv"
@@ -19,6 +18,7 @@ func NewConfigCommand() *Command {
 			"switch": newSwitchCmd(),
 		},
 	}
+	cmd.NewFlagSet("iobeam profile")
 
 	return cmd
 }
@@ -38,13 +38,13 @@ func newCreateProfileCmd() *Command {
 		Name:   "create",
 		Usage:  "Create a new local profile for the CLI.",
 		Data:   p,
-		Flags:  flag.NewFlagSet("create", flag.ExitOnError),
 		Action: createProfile,
 	}
 
-	cmd.Flags.StringVar(&p.Name, "name", "", "Profile name/identifier")
-	cmd.Flags.StringVar(&p.Server, "server", config.DefaultApiServer, "URL of API server")
-	cmd.Flags.BoolVar(&p.switchTo, "active", false, "Make this the active profile after creation")
+	flags := cmd.NewFlagSet("iobeam profile create")
+	flags.StringVar(&p.Name, "name", "", "Profile name/identifier")
+	flags.StringVar(&p.Server, "server", config.DefaultApiServer, "URL of API server")
+	flags.BoolVar(&p.switchTo, "active", false, "Make this the active profile after creation")
 
 	return cmd
 }
@@ -68,6 +68,7 @@ func newProfileInfoCmd() *Command {
 		Usage:  "Displays the current CLI profile info.",
 		Action: showInfo,
 	}
+	cmd.NewFlagSet("iobeam profile info")
 	return cmd
 }
 
@@ -100,6 +101,7 @@ func newListCmd() *Command {
 		Usage:  "Displays all available profiles.",
 		Action: listProfiles,
 	}
+	cmd.NewFlagSet("iobeam profile list")
 	return cmd
 }
 
@@ -133,10 +135,10 @@ func newSwitchCmd() *Command {
 		Name:   "switch",
 		Usage:  "Changes the active profile.",
 		Data:   p,
-		Flags:  flag.NewFlagSet("switch", flag.ExitOnError),
 		Action: switchProfile,
 	}
-	cmd.Flags.StringVar(&p.Name, "name", "", "Name of profile to switch to")
+	flags := cmd.NewFlagSet("iobeam profile switch")
+	flags.StringVar(&p.Name, "name", "", "Name of profile to switch to")
 	return cmd
 }
 

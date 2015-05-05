@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"github.com/iobeam/iobeam/client"
 	"github.com/iobeam/iobeam/command"
@@ -39,12 +38,9 @@ func main() {
 		Index:   0,
 	}
 
-	flags := flag.NewFlagSet("iobeam", flag.ExitOnError)
-
 	cmd := &command.Command{
 		Name:  os.Args[0],
 		Usage: "iobeam Command-Line Interface (CLI)\nUse the -help flag for usage flags and syntax.",
-		Flags: flags,
 		SubCommands: command.Mux{
 			"device":  command.NewDevicesCommand(ctx),
 			"import":  command.NewImportCommand(ctx),
@@ -54,10 +50,7 @@ func main() {
 			"user":    command.NewUsersCommand(ctx),
 		},
 	}
-
-	flags.Usage = func() {
-		cmd.PrintUsage()
-	}
+	cmd.NewFlagSet("iobeam")
 
 	if len(ctx.Args) < 1 {
 		fmt.Fprintf(os.Stderr, "Usage of %s:\n", cmd.Name)

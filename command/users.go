@@ -2,7 +2,6 @@ package command
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"github.com/iobeam/iobeam/client"
 	"os"
@@ -57,6 +56,7 @@ func NewUsersCommand(ctx *Context) *Command {
 			"verify-email": newVerifyEmailCmd(),
 		},
 	}
+	cmd.NewFlagSet("iobeam user")
 
 	return cmd
 }
@@ -69,17 +69,23 @@ func requiredArg(required bool) string {
 }
 
 func newCreateOrUpdateUserCmd(update bool, name string, action CommandAction) *Command {
-
 	user := userData{
 		isUpdate: update,
 	}
-
-	flags := flag.NewFlagSet("user", flag.ExitOnError)
 	apiPath := "/v1/users"
-
 	if update {
 		apiPath += "/me"
 	}
+
+	cmd := &Command{
+		Name:    name,
+		ApiPath: apiPath,
+		Usage:   name + " user",
+		Data:    &user,
+		Action:  action,
+	}
+
+	flags := cmd.NewFlagSet("iobeam user " + name)
 	flags.StringVar(&user.Username, "username", "",
 		"Username associated with user")
 	flags.StringVar(&user.Password, "password", "", "The user's password"+
@@ -90,19 +96,9 @@ func newCreateOrUpdateUserCmd(update bool, name string, action CommandAction) *C
 	flags.StringVar(&user.LastName, "lastname", "", "The user's last name")
 	flags.StringVar(&user.CompanyName, "company", "", "The user's company name")
 	flags.StringVar(&user.Url, "url", "", "The user's webpage")
-
 	if !update {
 		flags.StringVar(&user.Invite, "invite", "", "Invite code needed for closed beta"+
 			requiredArg(true))
-	}
-
-	cmd := &Command{
-		Name:    name,
-		ApiPath: apiPath,
-		Usage:   name + " user",
-		Data:    &user,
-		Flags:   flags,
-		Action:  action,
 	}
 
 	return cmd
@@ -201,11 +197,10 @@ func newGetUserCmd(ctx *Context) *Command {
 		ApiPath: "/v1/users",
 		Usage:   "get user information",
 		Data:    &user,
-		Flags:   flag.NewFlagSet("get", flag.ExitOnError),
 		Action:  getUser,
 	}
-
-	cmd.Flags.StringVar(&user.username, "name", "", "Username or email of the user to query")
+	flags := cmd.NewFlagSet("iobeam user get")
+	flags.StringVar(&user.username, "name", "", "Username or email of the user to query")
 
 	return cmd
 }
@@ -243,7 +238,6 @@ func getUser(c *Command, ctx *Context) error {
 }
 
 func newSearchUsersCmd() *Command {
-
 	user := userData{
 		isSearch: true,
 	}
@@ -253,10 +247,10 @@ func newSearchUsersCmd() *Command {
 		ApiPath: "/v1/users",
 		Usage:   "search for users",
 		Data:    &user,
-		Flags:   flag.NewFlagSet("get", flag.ExitOnError),
 		Action:  searchUsers,
 	}
-	cmd.Flags.StringVar(&user.Username, "name", "", "The search string")
+	flags := cmd.NewFlagSet("iobeam user search")
+	flags.StringVar(&user.Username, "name", "", "The search string")
 
 	return cmd
 }
@@ -309,11 +303,10 @@ func newVerifyEmailCmd() *Command {
 		ApiPath: "/v1/users/email",
 		Usage:   "verify email",
 		Data:    email,
-		Flags:   flag.NewFlagSet("verify-email", flag.ExitOnError),
 		Action:  verifyEmail,
 	}
-
-	cmd.Flags.StringVar(&email.VerifyKey, "key", "", "Verification key from email")
+	flags := cmd.NewFlagSet("iobeam user verify-email")
+	flags.StringVar(&email.VerifyKey, "key", "", "Verification key from email")
 
 	return cmd
 }
@@ -351,12 +344,12 @@ func newNewPasswordCmd() *Command {
 		ApiPath: "/v1/users/password",
 		Usage:   "change password",
 		Data:    pw,
-		Flags:   flag.NewFlagSet("reset-pw", flag.ExitOnError),
 		Action:  resetPassword,
 	}
 
-	cmd.Flags.StringVar(&pw.email, "email", "", "If starting: email to reset password for")
-	cmd.Flags.StringVar(&pw.ResetKey, "key", "", "If verifying: reset key from email")
+	flags := cmd.NewFlagSet("iobeam user reset-pw")
+	flags.StringVar(&pw.email, "email", "", "If starting: email to reset password for")
+	flags.StringVar(&pw.ResetKey, "key", "", "If verifying: reset key from email")
 
 	return cmd
 }

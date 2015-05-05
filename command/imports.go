@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"time"
 )
@@ -21,23 +20,23 @@ func (d *importData) IsValid() bool {
 // NewImportCommand returns the base 'import' command.
 func NewImportCommand(ctx *Context) *Command {
 	d := new(importData)
+	pid := ctx.Profile.ActiveProject
+	now := time.Now().UnixNano() / int64(time.Millisecond)
 
 	cmd := &Command{
 		Name:    "import",
 		ApiPath: "/v1/imports",
 		Usage:   "Add data to a project",
 		Data:    d,
-		Flags:   flag.NewFlagSet("iobeam import", flag.ExitOnError),
 		Action:  sendImport,
 	}
 
-	pid := ctx.Profile.ActiveProject
-	now := time.Now().UnixNano() / int64(time.Millisecond)
-	cmd.Flags.Uint64Var(&d.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
-	cmd.Flags.StringVar(&d.deviceId, "deviceId", "", "Device ID (REQUIRED)")
-	cmd.Flags.StringVar(&d.series, "series", "", "Series name (REQUIRED)")
-	cmd.Flags.Int64Var(&d.timestamp, "time", now, "Timestamp, in milliseconds, of the data (if omitted, defaults to current time)")
-	cmd.Flags.Float64Var(&d.value, "value", 0.0, "Data value (REQUIRED)")
+	flags := cmd.NewFlagSet("iobeam import")
+	flags.Uint64Var(&d.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
+	flags.StringVar(&d.deviceId, "deviceId", "", "Device ID (REQUIRED)")
+	flags.StringVar(&d.series, "series", "", "Series name (REQUIRED)")
+	flags.Int64Var(&d.timestamp, "time", now, "Timestamp, in milliseconds, of the data (if omitted, defaults to current time)")
+	flags.Float64Var(&d.value, "value", 0.0, "Data value (REQUIRED)")
 
 	return cmd
 }
