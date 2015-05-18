@@ -95,8 +95,10 @@ func createDevice(c *Command, ctx *Context) error {
 		ResponseBodyHandler(func(body interface{}) error {
 
 		device := body.(*deviceData)
-		fmt.Printf("The new device ID is %v\n",
-			device.DeviceId)
+		fmt.Println("New device created.")
+		fmt.Printf("Device ID: %v\n", device.DeviceId)
+		fmt.Printf("Device Name: %v\n", device.DeviceName)
+		fmt.Println()
 
 		return nil
 	}).Execute()
