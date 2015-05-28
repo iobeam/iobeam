@@ -113,13 +113,32 @@ func getExport(c *Command, ctx *Context) error {
 		reqPath += "/" + e.series
 	}
 
-	req := ctx.Client.Get(reqPath).Expect(200).ProjectToken(ctx.Profile, e.projectId)
-	req = req.
-		ParamUint64("limit", e.limit).
-		ParamUint64("from", e.from).
-		ParamUint64("to", e.to).
-		ParamInt64("less_than", e.lessThan).
-		ParamInt64("greater_than", e.greaterThan)
+	req := ctx.Client.Get(reqPath).Expect(200).
+		ProjectToken(ctx.Profile, e.projectId).
+		ParamUint64("limit", e.limit)
+
+	// Only add params if actually set / necessary, i.e.:
+	// - "to" is less than current time
+	// - "from" is something other than 0
+	// - "lessThan" is something other than MAX INT
+	// - "greaterThan" is something other than MIN INT
+	// etc
+	maxTime := uint64(time.Now().UnixNano() / int64(time.Millisecond))
+	if e.to < maxTime {
+		req = req.ParamUint64("to", e.to)
+	}
+
+	if e.from > 0 {
+		req = req.ParamUint64("from", e.from)
+	}
+
+	if e.lessThan < math.MaxInt64 {
+		req = req.ParamInt64("less_than", e.lessThan)
+	}
+
+	if e.greaterThan > math.MinInt64 {
+		req = req.ParamInt64("greater_than", e.greaterThan)
+	}
 
 	if len(e.equal) > 0 {
 		temp, _ := strconv.ParseInt(e.equal, 0, 64)
