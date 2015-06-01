@@ -11,7 +11,8 @@ to generate a valid token and use our APIs. (Want an invite? Sign up [here](http
 ## Installation ##
 
 Install `Go` if not already installed (e.g., `brew install go` on Mac OS X). Make sure you
-set your `GOPATH` (e.g., export GOPATH=~/go) and that the `GOPATH` exists.
+set your `GOPATH` (e.g., export GOPATH=~/go) and that the `GOPATH` exists. We recommend
+using Go 1.4.2 or newer; some older versions may have SSL certificate issues.
 
 Then,
 
