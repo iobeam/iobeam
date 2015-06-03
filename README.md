@@ -28,7 +28,7 @@ store state such as user and project tokens which authenticate you to the iobeam
 ### Creating your first project and device ###
 
     # Register as a new user, this will automatically log you in.
-    $ iobeam user create -email="<email>" -password="<password>"
+    $ iobeam user create -email="<email>" -password="<password>" -invite="<invite_code>"
 
     # Optionally, if you have an account already, you can just login.
     # You will be prompted for your credentials
