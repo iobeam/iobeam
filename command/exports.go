@@ -142,7 +142,6 @@ func getExport(c *Command, ctx *Context) error {
 
 	if len(e.equal) > 0 {
 		temp, _ := strconv.ParseInt(e.equal, 0, 64)
-		fmt.Println(temp)
 		req = req.ParamInt64("equals", temp)
 	}
 
