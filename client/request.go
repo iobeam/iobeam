@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/iobeam/iobeam/config"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 )
+
+// see time.Parse docs for why this is the case
+const tokenTimeForm = "2006-01-02 15:04:05 -0700"
 
 type basicAuth struct {
 	username string
@@ -87,13 +92,56 @@ func (r *Request) BasicAuth(username string, password string) *Request {
 	return r
 }
 
+// refreshToken takes care of refreshing the project token when it expires.
+func refreshToken(r *Request, t *AuthToken, p *config.Profile) {
+	type data struct {
+		OldToken string `json:"refresh_token"`
+	}
+	body := data{OldToken: t.Token}
+	client := r.client
+	reqPath := "/v1/tokens/project"
+	_, _ = client.Post(reqPath).
+		Expect(200).
+		Body(body).
+		ResponseBody(new(AuthToken)).
+		ResponseBodyHandler(func(token interface{}) error {
+
+		projToken := token.(*AuthToken)
+		err := projToken.Save(p)
+		if err != nil {
+			fmt.Printf("Could not save new token: %s\n", err)
+		}
+
+		err = p.UpdateActiveProject(projToken.ProjectId)
+		if err != nil {
+			fmt.Printf("Could not update active project: %s\n", err)
+		}
+		fmt.Println("New project token acquired...")
+		fmt.Printf("Expires: %v\n", projToken.Expires)
+		fmt.Println("-----")
+
+		return err
+	}).Execute()
+}
+
 func (r *Request) UserToken(p *config.Profile) *Request {
 	r.token, _ = ReadUserToken(p)
 	return r
 }
 
+// ProjectToken returns a Request with the project token set. If the token is expired,
+// an attempt to refresh the token is made. This function can be chained.
 func (r *Request) ProjectToken(p *config.Profile, id uint64) *Request {
 	r.token, _ = ReadProjToken(p, id)
+	exp, err := time.Parse(tokenTimeForm, r.token.Expires)
+	if err != nil {
+		return r
+	}
+	now := time.Now()
+	if now.After(exp) {
+		refreshToken(r, r.token, p)
+		r.token, _ = ReadProjToken(p, id)
+	}
 	return r
 }
 
