@@ -133,10 +133,15 @@ func (r *Request) UserToken(p *config.Profile) *Request {
 // an attempt to refresh the token is made. This function can be chained.
 func (r *Request) ProjectToken(p *config.Profile, id uint64) *Request {
 	r.token, _ = ReadProjToken(p, id)
+	if r.token == nil {
+		return r
+	}
+
 	exp, err := time.Parse(tokenTimeForm, r.token.Expires)
 	if err != nil {
 		return r
 	}
+
 	now := time.Now()
 	if now.After(exp) {
 		refreshToken(r, r.token, p)
