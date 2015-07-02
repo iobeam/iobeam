@@ -67,11 +67,11 @@ func newCreateOrUpdateDeviceCmd(ctx *Context, update bool, name string, action C
 		idDesc = "ID of the device to be updated"
 	} else {
 		idDesc = "Device ID, if omitted a random one will be assigned (must be > 16 chars)"
-		flags.Uint64Var(&device.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID associated with the device (if omitted, defaults to active project).")
 	}
 	flags.StringVar(&device.DeviceId, "id", "", idDesc)
 	flags.StringVar(&device.DeviceName, "name", "", "The device name")
 	flags.StringVar(&device.DeviceType, "type", "", "The type of device")
+	flags.Uint64Var(&device.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID associated with the device (if omitted, defaults to active project).")
 
 	return cmd
 }
@@ -111,9 +111,9 @@ func updateDevice(c *Command, ctx *Context) error {
 	device := c.Data.(*deviceData)
 
 	rsp, err := ctx.Client.
-		Patch(c.ApiPath + "/" + device.DeviceId).
+		Patch(c.ApiPath+"/"+device.DeviceId).
 		Body(c.Data).
-		UserToken(ctx.Profile).
+		ProjectToken(ctx.Profile, device.ProjectId).
 		Expect(200).
 		Execute()
 
