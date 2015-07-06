@@ -22,9 +22,11 @@ func (d *deviceData) IsValid() bool {
 	return d.ProjectId != 0
 }
 
-// deviceId is a simpler struct for calls that just consist of a device id.
+// deviceId is a simpler struct for calls that just consist of a device id
+// and optionally projectId
 type deviceId struct {
-	id string
+	id        string
+	projectId uint64
 }
 
 func (d *deviceId) IsValid() bool {
@@ -38,7 +40,7 @@ func NewDevicesCommand(ctx *Context) *Command {
 		Usage: "Commands for managing devices.",
 		SubCommands: Mux{
 			"create": newCreateDeviceCmd(ctx),
-			"delete": newDeleteDeviceCmd(),
+			"delete": newDeleteDeviceCmd(ctx),
 			"get":    newGetDeviceCmd(),
 			"list":   newListDevicesCmd(ctx),
 			"update": newUpdateDeviceCmd(ctx),
@@ -231,7 +233,7 @@ func listDevices(c *Command, ctx *Context) error {
 	return err
 }
 
-func newDeleteDeviceCmd() *Command {
+func newDeleteDeviceCmd(ctx *Context) *Command {
 	data := new(deviceId)
 
 	cmd := &Command{
@@ -243,15 +245,16 @@ func newDeleteDeviceCmd() *Command {
 	}
 	flags := cmd.NewFlagSet("iobeam device delete")
 	flags.StringVar(&data.id, "id", "", "The ID of the device to delete (REQUIRED)")
+	flags.Uint64Var(&data.projectId, "projectId", ctx.Profile.ActiveProject, "The ID of the project the device belongs to (defaults to active project)")
 
 	return cmd
 }
 
 func deleteDevice(c *Command, ctx *Context) error {
-
+	data := c.Data.(*deviceId)
 	_, err := ctx.Client.
-		Delete(c.ApiPath + "/" + c.Data.(*deviceId).id).
-		UserToken(ctx.Profile).
+		Delete(c.ApiPath+"/"+data.id).
+		ProjectToken(ctx.Profile, data.projectId).
 		Expect(204).
 		Execute()
 
