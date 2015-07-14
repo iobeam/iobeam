@@ -41,7 +41,7 @@ func NewDevicesCommand(ctx *Context) *Command {
 		SubCommands: Mux{
 			"create": newCreateDeviceCmd(ctx),
 			"delete": newDeleteDeviceCmd(ctx),
-			"get":    newGetDeviceCmd(),
+			"get":    newGetDeviceCmd(ctx),
 			"list":   newListDevicesCmd(ctx),
 			"update": newUpdateDeviceCmd(ctx),
 		},
@@ -87,12 +87,12 @@ func newUpdateDeviceCmd(ctx *Context) *Command {
 }
 
 func createDevice(c *Command, ctx *Context) error {
-
+	data := c.Data.(*deviceData)
 	_, err := ctx.Client.
 		Post(c.ApiPath).
-		Body(c.Data).
-		UserToken(ctx.Profile).
 		Expect(201).
+		ProjectToken(ctx.Profile, data.ProjectId).
+		Body(data).
 		ResponseBody(c.Data).
 		ResponseBodyHandler(func(body interface{}) error {
 
@@ -114,9 +114,9 @@ func updateDevice(c *Command, ctx *Context) error {
 
 	rsp, err := ctx.Client.
 		Patch(c.ApiPath+"/"+device.DeviceId).
-		Body(c.Data).
-		ProjectToken(ctx.Profile, device.ProjectId).
 		Expect(200).
+		ProjectToken(ctx.Profile, device.ProjectId).
+		Body(c.Data).
 		Execute()
 
 	if err == nil {
@@ -129,7 +129,7 @@ func updateDevice(c *Command, ctx *Context) error {
 	return err
 }
 
-func newGetDeviceCmd() *Command {
+func newGetDeviceCmd(ctx *Context) *Command {
 	data := new(deviceId)
 
 	cmd := &Command{
@@ -141,17 +141,21 @@ func newGetDeviceCmd() *Command {
 	}
 	flags := cmd.NewFlagSet("iobeam device get")
 	flags.StringVar(&data.id, "id", "", "Device ID to query (REQUIRED)")
+	flags.Uint64Var(&data.projectId, "projectId", ctx.Profile.ActiveProject,
+		"Project ID to get devices from (if omitted, defaults to active project)")
 
 	return cmd
 }
 
 func getDevice(c *Command, ctx *Context) error {
-	id := c.Data.(*deviceId).id
+	data := c.Data.(*deviceId)
+	path := c.ApiPath + "/" + data.id
 
 	device := new(deviceData)
-	_, err := ctx.Client.Get(c.ApiPath + "/" + id).
-		UserToken(ctx.Profile).
+	_, err := ctx.Client.
+		Get(path).
 		Expect(200).
+		ProjectToken(ctx.Profile, data.projectId).
 		ResponseBody(device).
 		ResponseBodyHandler(func(body interface{}) error {
 		device = body.(*deviceData)
@@ -206,8 +210,8 @@ func listDevices(c *Command, ctx *Context) error {
 	_, err := ctx.Client.
 		Get(c.ApiPath).
 		ParamUint64("project_id", pid).
-		UserToken(ctx.Profile).
 		Expect(200).
+		ProjectToken(ctx.Profile, pid).
 		ResponseBody(new(deviceList)).
 		ResponseBodyHandler(func(body interface{}) error {
 
@@ -252,10 +256,11 @@ func newDeleteDeviceCmd(ctx *Context) *Command {
 
 func deleteDevice(c *Command, ctx *Context) error {
 	data := c.Data.(*deviceId)
+	path := c.ApiPath + "/" + data.id
 	_, err := ctx.Client.
-		Delete(c.ApiPath+"/"+data.id).
-		ProjectToken(ctx.Profile, data.projectId).
+		Delete(path).
 		Expect(204).
+		ProjectToken(ctx.Profile, data.projectId).
 		Execute()
 
 	if err == nil {
