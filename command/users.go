@@ -333,7 +333,7 @@ type pwData struct {
 }
 
 func (p *pwData) IsValid() bool {
-	return len(p.email) > 0 || (len(p.ResetKey) > 0 && len(p.Password) > 0)
+	return len(p.email) > 0 || len(p.ResetKey) > 0
 }
 
 func newNewPasswordCmd() *Command {
