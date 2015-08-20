@@ -10,7 +10,7 @@ to generate a valid token and use our APIs. (Want an invite? Sign up [here](http
 
 ## Installation ##
 
-Included with each of [releases](https://github.com/iobeam/iobeam/releases) are binary executables
+Included with each release are [binary executables](https://github.com/iobeam/iobeam/releases)
 (both 32- and 64-bit) for OSX (darwin), Linux, and Windows. This is the easiest way to use the CLI,
 simply download the one that corresponds to your platform, rename it `iobeam`, and make sure it
 is executable.
