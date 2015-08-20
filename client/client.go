@@ -2,6 +2,7 @@ package client
 
 import (
 	"net/http"
+	"runtime"
 )
 
 const defaultUserAgent = "iobeam cli "
@@ -21,7 +22,7 @@ func NewClient(target *string, clientVersion string) *Client {
 	client := Client{
 		httpClient: &http.Client{},
 		url:        target,
-		userAgent:  defaultUserAgent + clientVersion,
+		userAgent:  defaultUserAgent + clientVersion + "-" + runtime.GOOS + "-" + runtime.GOARCH,
 	}
 
 	return &client
