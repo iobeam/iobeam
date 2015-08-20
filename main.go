@@ -6,6 +6,7 @@ import (
 	"github.com/iobeam/iobeam/command"
 	"github.com/iobeam/iobeam/config"
 	"os"
+	"runtime"
 )
 
 func getActiveProfile() *config.Profile {
@@ -27,12 +28,27 @@ func getActiveProfile() *config.Profile {
 	return profile
 }
 
+func newVersionCommand() *command.Command {
+	action := func(c *command.Command, ctx *command.Context) error {
+		platformStr := runtime.GOOS + "-" + runtime.GOARCH
+		fmt.Printf("iobeam CLI version %s (build: %s)\n\n", config.CLI_VERSION, platformStr)
+		return nil
+	}
+	cmd := &command.Command{
+		Name:   "version",
+		Usage:  "Displays CLI version info.",
+		Action: action,
+	}
+	cmd.NewFlagSet("iobeam version")
+	return cmd
+}
+
 func main() {
 	profile := getActiveProfile()
 	server := profile.Server
 
 	ctx := &command.Context{
-		Client:  client.NewClient(&server),
+		Client:  client.NewClient(&server, config.CLI_VERSION),
 		Args:    os.Args,
 		Profile: profile,
 		Index:   0,
@@ -48,6 +64,7 @@ func main() {
 			"project": command.NewProjectsCommand(ctx),
 			"query":   command.NewExportCommand(ctx),
 			"user":    command.NewUsersCommand(ctx),
+			"version": newVersionCommand(),
 		},
 	}
 	cmd.NewFlagSet("iobeam")

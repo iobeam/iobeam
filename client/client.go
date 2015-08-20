@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-const defaultUserAgent = "iobeam cli 0.1"
+const defaultUserAgent = "iobeam cli "
 
 // Client represents a http.Client that will be used to talk to a server
 // running the iobeam API.
@@ -16,12 +16,12 @@ type Client struct {
 
 // NewClient returns a new HTTP client capable of communicating with a server
 // running the iobeam API. The server address is passed via target.
-func NewClient(target *string) *Client {
+func NewClient(target *string, clientVersion string) *Client {
 
 	client := Client{
 		httpClient: &http.Client{},
 		url:        target,
-		userAgent:  defaultUserAgent,
+		userAgent:  defaultUserAgent + clientVersion,
 	}
 
 	return &client
