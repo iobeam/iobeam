@@ -10,6 +10,13 @@ to generate a valid token and use our APIs. (Want an invite? Sign up [here](http
 
 ## Installation ##
 
+Included with each of [releases](https://github.com/iobeam/iobeam/releases) are binary executables
+(both 32- and 64-bit) for OSX (darwin), Linux, and Windows. This is the easiest way to use the CLI,
+simply download the one that corresponds to your platform, rename it `iobeam`, and make sure it
+is executable.
+
+### Building and installing from source
+
 Install `Go` if not already installed (e.g., `brew install go` on Mac OS X). Make sure you
 set your `GOPATH` (e.g., export GOPATH=~/go) and that the `GOPATH` exists. We recommend
 using Go 1.4.2 or newer; some older versions may have SSL certificate issues.
