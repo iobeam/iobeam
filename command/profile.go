@@ -146,6 +146,7 @@ func switchProfile(c *Command, ctx *Context) error {
 	p := c.Data.(*switchData)
 	err := config.SwitchProfile(p.Name)
 	if err != nil {
+		fmt.Println("[ERROR] Could not switch profile: ")
 		return err
 	}
 	fmt.Printf("Active profile is now '%s'\n", p.Name)
