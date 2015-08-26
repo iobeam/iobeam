@@ -77,13 +77,33 @@ func showInfo(c *Command, ctx *Context) error {
 
 	fmt.Println("Profile name  :", profile.Name)
 	fmt.Println("API server    :", profile.Server)
+	fmt.Println()
+
 	var user string
+	var userEmail string
 	if profile.ActiveUser == 0 {
 		user = "[None]"
+		userEmail = "[None]"
 	} else {
+		rsp := new(userData)
+		_, err := ctx.Client.
+			Get("/v1/users/me").
+			UserToken(ctx.Profile).
+			Expect(200).
+			ResponseBody(rsp).
+			ResponseBodyHandler(func(body interface{}) error { return nil }).
+			Execute()
+		if err == nil {
+			userEmail = rsp.Email
+		} else {
+			userEmail = "[Unable to get user info]"
+		}
 		user = strconv.FormatUint(profile.ActiveUser, 10)
 	}
-	fmt.Println("Active user   :", user)
+	fmt.Println("Active user id:", user)
+	fmt.Println("Active user   :", userEmail)
+	fmt.Println()
+
 	var project string
 	if profile.ActiveProject == 0 {
 		project = "[None]"
