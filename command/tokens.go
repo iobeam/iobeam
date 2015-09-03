@@ -53,6 +53,7 @@ func getUserToken(c *Command, ctx *Context) error {
 	}
 	t.password = string(line)
 
+	var userId uint64
 	_, err = ctx.Client.
 		Get(c.ApiPath).
 		BasicAuth(t.username, t.password).
@@ -65,16 +66,30 @@ func getUserToken(c *Command, ctx *Context) error {
 		if err != nil {
 			fmt.Printf("Could not save token: %s\n", err)
 		}
-
-		err = ctx.Profile.UpdateActiveUser(authToken.UserId)
-		if err != nil {
-			fmt.Printf("Could not update active user: %s\n", err)
-		}
+		userId = authToken.UserId
 
 		fmt.Println("Token acquired:")
 		fmt.Printf("%s\n", authToken.Token)
 		return err
 	}).Execute()
+
+	// No errors, so let's set the active user id/email
+	if err == nil {
+		rsp := new(userData)
+		_, err = ctx.Client.
+			Get("/v1/users/me").
+			UserToken(ctx.Profile).
+			Expect(200).
+			ResponseBody(rsp).
+			ResponseBodyHandler(func(body interface{}) error {
+
+			err := ctx.Profile.UpdateActiveUser(userId, rsp.Email)
+			if err != nil {
+				fmt.Printf("Could not update active user, you may have to login again: %s\n", err)
+			}
+			return err
+		}).Execute()
+	}
 
 	return err
 }
