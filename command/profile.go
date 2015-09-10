@@ -85,20 +85,20 @@ func showInfo(c *Command, ctx *Context) error {
 		user = "[None]"
 		userEmail = "[None]"
 	} else {
-		rsp := new(userData)
-		_, err := ctx.Client.
-			Get("/v1/users/me").
-			UserToken(ctx.Profile).
-			Expect(200).
-			ResponseBody(rsp).
-			ResponseBodyHandler(func(body interface{}) error { return nil }).
-			Execute()
-		if err == nil {
-			userEmail = rsp.Email
-		} else {
-			userEmail = "[Unable to get user info]"
-		}
 		user = strconv.FormatUint(profile.ActiveUser, 10)
+		userEmail = profile.ActiveUserEmail
+		if len(userEmail) == 0 {
+			rsp := new(userData)
+			ctx.Client.
+				Get("/v1/users/me").
+				UserToken(ctx.Profile).
+				Expect(200).
+				ResponseBody(rsp).
+				ResponseBodyHandler(func(body interface{}) error {
+				return ctx.Profile.UpdateActiveUser(profile.ActiveUser, rsp.Email)
+			}).Execute()
+			userEmail = rsp.Email
+		}
 	}
 	fmt.Println("Active user id:", user)
 	fmt.Println("Active user   :", userEmail)

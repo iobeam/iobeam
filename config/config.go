@@ -72,6 +72,7 @@ func readJson(path string, obj interface{}) error {
 		return err
 	}
 
+	defer file.Close()
 	return json.NewDecoder(file).Decode(obj)
 }
 
@@ -104,10 +105,11 @@ func ReadDefaultConfig() (*iobeamConfig, error) {
 }
 
 type Profile struct {
-	Name          string `json:"-"`
-	Server        string `json:"server"`
-	ActiveProject uint64 `json:"active_project"`
-	ActiveUser    uint64 `json:"active_user"`
+	Name            string `json:"-"`
+	Server          string `json:"server"`
+	ActiveProject   uint64 `json:"active_project"`
+	ActiveUser      uint64 `json:"active_user"`
+	ActiveUserEmail string `json:"activer_user_email"`
 	// TODO: Don't export active fields.
 }
 
@@ -158,8 +160,9 @@ func (p *Profile) GetFile() string {
 	return profilePath(p.Name)
 }
 
-func (p *Profile) UpdateActiveUser(uid uint64) error {
+func (p *Profile) UpdateActiveUser(uid uint64, email string) error {
 	p.ActiveUser = uid
+	p.ActiveUserEmail = email
 	return p.save()
 }
 
