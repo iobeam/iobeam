@@ -17,14 +17,23 @@ const (
 	opMean  = "mean"
 )
 
+const (
+	timeFmtSec    = "sec"
+	timeFmtMsec   = "msec"
+	timeFmtUsec   = "usec"
+	timeFmtStruct = "timeval"
+)
+
 const max_duration_str = "24h"
 
 var ops = []string{opSum, opCount, opMin, opMax, opMean}
+var timeFmts = []string{timeFmtSec, timeFmtMsec, timeFmtUsec, timeFmtStruct}
 
 type exportData struct {
 	projectId uint64
 	deviceId  string
 	series    string
+	timeFmt   string
 
 	limit       uint64
 	from        uint64
@@ -64,7 +73,16 @@ func (e *exportData) IsValid() bool {
 		_, err := time.ParseDuration(e.groupBy)
 		groupOk = err == nil && len(e.operator) > 0
 	}
-	return pidOk && limitOk && rangeOk && valRangeOk && equalOk && opOk && groupOk
+
+	timeOk := false
+	for _, t := range timeFmts {
+		if t == e.timeFmt {
+			timeOk = true
+			break
+		}
+	}
+
+	return pidOk && limitOk && rangeOk && valRangeOk && equalOk && opOk && groupOk && timeOk
 }
 
 // NewExportCommand returns the base 'export' command.
@@ -95,6 +113,7 @@ func NewExportCommand(ctx *Context) *Command {
 	flags.StringVar(&e.equal, "equalTo", "", "Datapoints with this value")
 	flags.StringVar(&e.operator, "operator", "", "Aggregation function to apply to datapoints: "+strings.Join(ops, ", "))
 	flags.StringVar(&e.groupBy, "groupBy", "", "Group data by [number][period], where the time period can be ms, s, m, or h (e.g., 30s, 15m, 6h). Requires a valid operator.")
+	flags.StringVar(&e.timeFmt, "timeFmt", "msec", "Time unit to display timestamps: "+strings.Join(timeFmts, ", "))
 	return cmd
 }
 
@@ -115,7 +134,8 @@ func getExport(c *Command, ctx *Context) error {
 
 	req := ctx.Client.Get(reqPath).Expect(200).
 		ProjectToken(ctx.Profile, e.projectId).
-		ParamUint64("limit", e.limit)
+		ParamUint64("limit", e.limit).
+		Param("timefmt", e.timeFmt)
 
 	// Only add params if actually set / necessary, i.e.:
 	// - "to" is less than current time
