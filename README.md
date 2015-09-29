@@ -95,8 +95,8 @@ distribute with devices going to third parties. Instead, you can generate a new 
 allows you to upload data (i.e. has write permissions) but not admin permissions.
 
     # Generating a read/write only token
-    $ iobeam token project -id=<project_id> -read=true -write=true -admin=false
+    $ iobeam project token -id=<project_id> -read=true -write=true -admin=false
 
     # Generating a write only token
-    $ iobeam token project -id=<project_id> -read=false -write=true -admin=false
+    $ iobeam project token -id=<project_id> -read=false -write=true -admin=false
 
