@@ -14,7 +14,7 @@ type importData struct {
 }
 
 func (d *importData) IsValid() bool {
-	return d.projectId > 0 && len(d.deviceId) > 0 && len(d.series) > 0 && d.timestamp > 0
+	return d.projectId > 0 && len(d.deviceId) > 0 && len(d.series) > 0 && d.timestamp >= 0
 }
 
 // NewImportCommand returns the base 'import' command.
