@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -35,8 +36,27 @@ func defaultResponseBodyReader(r *Response, into interface{}) error {
 	return d.Decode(&into)
 }
 
+func plainResponseBodyReader(r *Response, into *string) error {
+	defer r.httpResponse.Body.Close()
+	contents, err := ioutil.ReadAll(r.httpResponse.Body)
+	if err != nil {
+		return err
+	}
+	*into = string(contents)
+
+	return nil
+}
+
 func (r *Response) Read(into interface{}) error {
 	return r.reader(r, into)
+}
+
+func (r *Response) ReadJson(into interface{}) error {
+	return defaultResponseBodyReader(r, into)
+}
+
+func (r *Response) ReadPlain(result *string) error {
+	return plainResponseBodyReader(r, result)
 }
 
 func (r *Response) Http() *http.Response {

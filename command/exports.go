@@ -24,16 +24,23 @@ const (
 	timeFmtStruct = "timeval"
 )
 
+const (
+	outputJson = "json"
+	outputCsv  = "csv"
+)
+
 const max_duration_str = "24h"
 
 var ops = []string{opSum, opCount, opMin, opMax, opMean}
 var timeFmts = []string{timeFmtSec, timeFmtMsec, timeFmtUsec, timeFmtStruct}
+var outputs = []string{outputJson, outputCsv}
 
 type exportData struct {
 	projectId uint64
 	deviceId  string
 	series    string
 	timeFmt   string
+	output    string
 
 	limit       uint64
 	from        uint64
@@ -76,8 +83,9 @@ func (e *exportData) IsValid() bool {
 	}
 
 	timeOk := isInList(e.timeFmt, timeFmts)
+	outputOk := isInList(e.output, outputs)
 
-	return pidOk && limitOk && rangeOk && valRangeOk && equalOk && opOk && groupOk && timeOk
+	return pidOk && limitOk && rangeOk && valRangeOk && equalOk && opOk && groupOk && timeOk && outputOk
 }
 
 // NewExportCommand returns the base 'export' command.
@@ -109,6 +117,7 @@ func NewExportCommand(ctx *Context) *Command {
 	flags.StringVar(&e.operator, "operator", "", "Aggregation function to apply to datapoints: "+strings.Join(ops, ", "))
 	flags.StringVar(&e.groupBy, "groupBy", "", "Group data by [number][period], where the time period can be ms, s, m, or h (e.g., 30s, 15m, 6h). Requires a valid operator.")
 	flags.StringVar(&e.timeFmt, "timeFmt", "msec", "Time unit to display timestamps: "+strings.Join(timeFmts, ", "))
+	flags.StringVar(&e.output, "output", "json", "Output format of the results. Valid outputs: json, csv")
 	return cmd
 }
 
@@ -130,7 +139,8 @@ func getExport(c *Command, ctx *Context) error {
 	req := ctx.Client.Get(reqPath).Expect(200).
 		ProjectToken(ctx.Profile, e.projectId).
 		ParamUint64("limit", e.limit).
-		Param("timefmt", e.timeFmt)
+		Param("timefmt", e.timeFmt).
+		Param("output", e.output)
 
 	// Only add params if actually set / necessary, i.e.:
 	// - "to" is less than current time
@@ -172,9 +182,14 @@ func getExport(c *Command, ctx *Context) error {
 	_, err := req.ResponseBody(&x).
 		ResponseBodyHandler(func(token interface{}) error {
 		fmt.Println("Results: ")
-		output, err := json.MarshalIndent(token, "", "  ")
-		fmt.Println(string(output))
-		return err
+		if e.output == outputJson {
+			output, err := json.MarshalIndent(token, "", "  ")
+			fmt.Println(string(output))
+			return err
+		} else {
+			fmt.Println(token)
+			return nil
+		}
 	}).Execute()
 
 	return err
