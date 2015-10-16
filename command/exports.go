@@ -46,6 +46,15 @@ type exportData struct {
 	groupBy  string
 }
 
+func isInList(item string, list []string) bool {
+	for _, i := range list {
+		if i == item {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *exportData) IsValid() bool {
 	pidOk := e.projectId > 0
 	limitOk := e.limit > 0
@@ -58,15 +67,7 @@ func (e *exportData) IsValid() bool {
 		equalOk = err == nil
 	}
 
-	opOk := len(e.operator) == 0
-	if !opOk {
-		for _, o := range ops {
-			if o == e.operator {
-				opOk = true
-				break
-			}
-		}
-	}
+	opOk := len(e.operator) == 0 || isInList(e.operator, ops)
 
 	groupOk := len(e.groupBy) == 0
 	if !groupOk {
@@ -74,13 +75,7 @@ func (e *exportData) IsValid() bool {
 		groupOk = err == nil && len(e.operator) > 0
 	}
 
-	timeOk := false
-	for _, t := range timeFmts {
-		if t == e.timeFmt {
-			timeOk = true
-			break
-		}
-	}
+	timeOk := isInList(e.timeFmt, timeFmts)
 
 	return pidOk && limitOk && rangeOk && valRangeOk && equalOk && opOk && groupOk && timeOk
 }
