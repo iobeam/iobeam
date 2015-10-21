@@ -383,14 +383,21 @@ func resetPassword(c *Command, ctx *Context) error {
 
 func verifyResetPw(data *pwData, ctx *Context) error {
 	bio := bufio.NewReader(os.Stdin)
-	fmt.Printf("New password: ")
-	line, _, err := bio.ReadLine()
-	if err != nil {
-		return err
+	for true {
+		fmt.Printf("New password: ")
+		line, _, err := bio.ReadLine()
+		if err != nil {
+			return err
+		}
+		if len(line) > 0 {
+			data.Password = string(line)
+			break
+		} else {
+			fmt.Println("Password cannot be empty.")
+		}
 	}
-	data.Password = string(line)
 
-	_, err = ctx.Client.
+	_, err := ctx.Client.
 		Post("/v1/users/password").
 		Expect(204).
 		Body(data).
