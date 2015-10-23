@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -203,6 +204,31 @@ func (r *Request) Execute() (*Response, error) {
 	httpRsp, err := r.client.httpClient.Do(req)
 
 	rsp := NewResponse(httpRsp)
+	contentType := "application/json"
+	if len(httpRsp.Header["Content-Type"]) > 0 {
+		contentType = httpRsp.Header["Content-Type"][0]
+	}
+	contentTypeArgs := strings.Split(contentType, ";")
+
+	caseInsensitiveEqual := func(given, want string) bool {
+		return strings.ToLower(strings.TrimSpace(given)) == want
+	}
+	isJson := false
+	isPlain := false
+	if len(contentTypeArgs) == 1 {
+		isJson = caseInsensitiveEqual(contentTypeArgs[0], "application/json")
+		isPlain = caseInsensitiveEqual(contentTypeArgs[0], "text/plain")
+	} else if len(contentTypeArgs) == 2 {
+		isUtf8 := caseInsensitiveEqual(contentTypeArgs[1], "charset=utf-8")
+		if isUtf8 {
+			isJson = caseInsensitiveEqual(contentTypeArgs[0], "application/json")
+			isPlain = caseInsensitiveEqual(contentTypeArgs[0], "text/plain")
+		}
+	}
+
+	if !isJson && !isPlain {
+		return rsp, errors.New("Unknown content-type: " + contentType)
+	}
 
 	if err != nil {
 		return rsp, err
@@ -223,16 +249,24 @@ func (r *Request) Execute() (*Response, error) {
 		return rsp, err
 	}
 
-	if r.responseBody != nil {
-		err = rsp.Read(r.responseBody)
+	var res interface{}
+	if isJson && r.responseBody != nil {
+		err = rsp.ReadJson(r.responseBody)
+		res = r.responseBody
+	} else if !isJson && isPlain {
+		var temp string
+		err = rsp.ReadPlain(&temp)
+		res = temp
+	} else if !isJson && !isPlain {
+		return rsp, errors.New("Unknown content-type, cannot read response: " + contentType)
+	}
 
-		if err != nil {
-			return rsp, err
-		}
+	if err != nil {
+		return rsp, err
+	}
 
-		if r.handler != nil {
-			err = r.handler(r.responseBody)
-		}
+	if r.handler != nil {
+		err = r.handler(res)
 	}
 
 	return rsp, err
