@@ -31,18 +31,19 @@ func InitConfig() (*iobeamConfig, error) {
 	return c, nil
 }
 
-func GetDotDir() string {
+func getDotDir() string {
 	user, err := user.Current()
 
 	if err != nil {
-		return os.TempDir()
+		// We cannot gracefully use the temp directory with profiles.
+		panic(err)
 	}
 
 	return user.HomeDir + pathSeparator + dotDirName
 }
 
 func defaultConfigPath() string {
-	return GetDotDir() + pathSeparator + defaultConfig
+	return getDotDir() + pathSeparator + defaultConfig
 }
 
 func makeAllOnPath(path string) error {
@@ -78,7 +79,7 @@ func readJson(path string, obj interface{}) error {
 
 // save writes the config to disk in the user's .iobeam directory.
 func (c *iobeamConfig) save() error {
-	err := makeAllOnPath(GetDotDir())
+	err := makeAllOnPath(getDotDir())
 	if err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func InitProfileWithServer(name, server string) (*Profile, error) {
 }
 
 func baseProfilePath(name string) string {
-	return GetDotDir() + pathSeparator + name
+	return getDotDir() + pathSeparator + name
 }
 
 func profilePath(name string) string {
@@ -184,7 +185,7 @@ func ReadProfile(name string) (*Profile, error) {
 }
 
 func GetProfileList() ([]string, error) {
-	files, err := ioutil.ReadDir(GetDotDir())
+	files, err := ioutil.ReadDir(getDotDir())
 	if err != nil {
 		return nil, err
 	}
