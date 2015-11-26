@@ -1,9 +1,12 @@
 package command
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/iobeam/iobeam/client"
+	"os"
 	"strconv"
+	"strings"
 )
 
 type projectData struct {
@@ -38,6 +41,7 @@ func NewProjectsCommand(ctx *Context) *Command {
 			"get":         newGetProjectCmd(ctx),
 			"list":        newListProjectsCmd(),
 			"permissions": newProjectPermissionsCmd(ctx),
+			"switch":      newProjectSwitchCmd(),
 			"token":       newGetProjectTokenCmd(ctx),
 			"update":      newUpdateProjectCmd(ctx),
 		},
@@ -414,6 +418,83 @@ func getProjectPermissions(c *Command, ctx *Context) error {
 
 		return nil
 	}).Execute()
+
+	return err
+}
+
+type projectId struct {
+	pid uint64
+}
+
+func (p *projectId) IsValid() bool {
+	return p.pid > 0
+}
+
+func newProjectSwitchCmd() *Command {
+	p := projectId{}
+
+	cmd := &Command{
+		Name:    "switch",
+		ApiPath: "/v1/projects/%v/permissions",
+		Usage:   "Switch to a different project",
+		Data:    &p,
+		Action:  switchProject,
+	}
+
+	flags := cmd.NewFlagSet("iobeam project switch")
+	flags.Uint64Var(&p.pid, "id", 0, "Project ID to switch to (required)")
+
+	return cmd
+}
+
+func readBoolean(prompt string, reader *bufio.Reader) bool {
+	ret := false
+	for true {
+		fmt.Printf(prompt)
+		line, _, err := reader.ReadLine()
+		if err != nil {
+			break
+		}
+		if len(line) > 0 {
+			temp := strings.ToLower(strings.TrimSpace(string(line)))
+			if temp == "t" || temp == "true" || temp == "y" || temp == "yes" {
+				ret = true
+			}
+			break
+		}
+	}
+	return ret
+}
+
+func switchProject(c *Command, ctx *Context) error {
+	p := c.Data.(*projectId)
+	if p.pid == ctx.Profile.ActiveProject {
+		fmt.Println("Already using project", p.pid)
+		return nil
+	}
+
+	token, err := client.ReadProjToken(ctx.Profile, p.pid)
+	if err != nil {
+		fmt.Println("No token locally, need to fetch one...")
+		tokenCmd := newGetProjectTokenCmd(ctx)
+		pdata := tokenCmd.Data.(*projectPermissions)
+		pdata.projectId = p.pid
+
+		bio := bufio.NewReader(os.Stdin)
+		pdata.read = readBoolean("Read permission? (t)rue/(f)alse: ", bio)
+		pdata.write = readBoolean("Write permission? (t)rue/(f)alse: ", bio)
+		pdata.admin = readBoolean("Admin permission? (t)rue/(f)alse: ", bio)
+		return getProjectToken(tokenCmd, ctx)
+	} else {
+		err = ctx.Profile.UpdateActiveProject(token.ProjectId)
+		if err != nil {
+			fmt.Printf("Could not update active project: %s\n", err)
+			return err
+		}
+		fmt.Printf("Switched to project %v\n", p.pid)
+		fmt.Printf("-----")
+		printProjectToken(token)
+	}
 
 	return err
 }

@@ -94,6 +94,15 @@ func getUserToken(c *Command, ctx *Context) error {
 	return err
 }
 
+func printProjectToken(projToken *client.AuthToken) {
+	fmt.Printf("\n%v\n\n", projToken.Token)
+	fmt.Printf("Expires: %v\n", projToken.Expires)
+	fmt.Printf("Permissions:\n")
+	fmt.Printf("  READ  = %v\n", projToken.Read)
+	fmt.Printf("  WRITE = %v\n", projToken.Write)
+	fmt.Printf("  ADMIN = %v\n", projToken.Admin)
+}
+
 type projectPermissions struct {
 	projectId uint64
 	read      bool
@@ -152,17 +161,7 @@ func getProjectToken(c *Command, ctx *Context) error {
 			fmt.Printf("Could not update active project: %s\n", err)
 		}
 
-		fmt.Printf("%4v: %v\n%4v:\n  %-6v: %v\n  %-6v: %v\n  %-6v: %v\n%v\n",
-			"Expires",
-			projToken.Expires,
-			"Permissions",
-			"READ",
-			projToken.Read,
-			"WRITE",
-			projToken.Write,
-			"ADMIN",
-			projToken.Admin,
-			projToken.Token)
+		printProjectToken(projToken)
 
 		return nil
 	}).Execute()
