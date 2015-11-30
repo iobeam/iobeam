@@ -181,7 +181,7 @@ func getExport(c *Command, ctx *Context) error {
 	x := make(map[string]interface{})
 	_, err := req.ResponseBody(&x).
 		ResponseBodyHandler(func(token interface{}) error {
-		fmt.Println("Results: ")
+
 		if e.output == outputJson {
 			output, err := json.MarshalIndent(token, "", "  ")
 			fmt.Println(string(output))
