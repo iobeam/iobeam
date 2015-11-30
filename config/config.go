@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -203,13 +204,27 @@ func GetProfileList() ([]string, error) {
 func SwitchProfile(name string) error {
 	path := baseProfilePath(name)
 	_, err := os.Stat(path)
-	if err != nil {
-		return err
+	if os.IsNotExist(err) {
+		return fmt.Errorf("Profile '%s' does not exist", name)
 	}
 
-	c := &iobeamConfig{
-		Name: name,
+	if err == nil {
+		c := &iobeamConfig{
+			Name: name,
+		}
+		err = c.save()
 	}
-	err = c.save()
 	return err
+}
+
+func DeleteProfile(name string) error {
+	path := baseProfilePath(name)
+	_, err := os.Stat(path)
+	if err == nil {
+		return os.RemoveAll(path)
+	} else if os.IsNotExist(err) {
+		return fmt.Errorf("Profile '%s' does not exist", name)
+	} else {
+		return err
+	}
 }

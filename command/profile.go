@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"github.com/iobeam/iobeam/config"
 	"strconv"
@@ -13,6 +14,7 @@ func NewConfigCommand() *Command {
 		Usage: "Manage CLI profile",
 		SubCommands: Mux{
 			"create": newCreateProfileCmd(),
+			"delete": newDeleteProfileCmd(),
 			"info":   newProfileInfoCmd(),
 			"list":   newListCmd(),
 			"switch": newSwitchCmd(),
@@ -141,16 +143,16 @@ func listProfiles(c *Command, ctx *Context) error {
 	return nil
 }
 
-type switchData struct {
+type baseData struct {
 	config.Profile
 }
 
-func (p *switchData) IsValid() bool {
+func (p *baseData) IsValid() bool {
 	return len(p.Name) > 0
 }
 
 func newSwitchCmd() *Command {
-	p := new(switchData)
+	p := new(baseData)
 	cmd := &Command{
 		Name:   "switch",
 		Usage:  "Changes the active profile.",
@@ -163,7 +165,7 @@ func newSwitchCmd() *Command {
 }
 
 func switchProfile(c *Command, ctx *Context) error {
-	p := c.Data.(*switchData)
+	p := c.Data.(*baseData)
 	err := config.SwitchProfile(p.Name)
 	if err != nil {
 		fmt.Println("[ERROR] Could not switch profile: ")
@@ -171,4 +173,34 @@ func switchProfile(c *Command, ctx *Context) error {
 	}
 	fmt.Printf("Active profile is now '%s'\n", p.Name)
 	return nil
+}
+
+func newDeleteProfileCmd() *Command {
+	p := new(baseData)
+	cmd := &Command{
+		Name:   "delete",
+		Usage:  "Delete a profile.",
+		Data:   p,
+		Action: deleteProfile,
+	}
+	flags := cmd.NewFlagSet("iobeam profile delete")
+	flags.StringVar(&p.Name, "name", "", "Name of profile to delete (cannot be active)")
+	return cmd
+}
+
+func deleteProfile(c *Command, ctx *Context) error {
+	p := c.Data.(*baseData)
+	profile := ctx.Profile
+	if p.Name == profile.Name {
+		return errors.New("Cannot delete active profile")
+	}
+
+	err := config.DeleteProfile(p.Name)
+	if err == nil {
+		fmt.Printf("Profile '%s' successfully deleted\n", p.Name)
+	} else {
+		fmt.Println("[ERROR] Could not delete profile: ")
+	}
+
+	return err
 }
