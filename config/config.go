@@ -13,7 +13,7 @@ type iobeamConfig struct {
 }
 
 const (
-	CLI_VERSION      = "0.3.0"
+	CLI_VERSION      = "0.4.0"
 	pathSeparator    = string(os.PathSeparator)
 	dotDirName       = ".iobeam"
 	defaultConfig    = "profile"
