@@ -76,7 +76,7 @@ the next section.*
 
     # You can also leave off -projectId, which will use the projectId of the
     # last project you got a token for.
-    $ iobema query
+    $ iobeam query
 
     # Query all data streams under a given project and device
     $ iobeam query -projectId=<project_id> -deviceId="<device_id>"
