@@ -29,16 +29,31 @@ const (
 	outputCsv  = "csv"
 )
 
-const max_duration_str = "24h"
+const maxDurationStr = "24h"
 
 var ops = []string{opSum, opCount, opMin, opMax, opMean}
 var timeFmts = []string{timeFmtSec, timeFmtMsec, timeFmtUsec, timeFmtStruct}
 var outputs = []string{outputJson, outputCsv}
 
+type setFlags map[string]struct{}
+
+func (i *setFlags) String() string {
+	return fmt.Sprintf("%v", *i)
+}
+
+func (i *setFlags) Set(value string) error {
+	if *i == nil {
+		*i = map[string]struct{}{}
+	}
+	var empty struct{}
+	(*i)[value] = empty
+	return nil
+}
+
 type exportData struct {
 	projectId uint64
 	deviceId  string
-	series    string
+	series    setFlags
 	timeFmt   string
 	output    string
 
@@ -102,11 +117,11 @@ func NewExportCommand(ctx *Context) *Command {
 	}
 
 	flags := cmd.NewFlagSet("iobeam query")
-	max_duration, _ := time.ParseDuration(max_duration_str)
-	maxTime := time.Now().Add(max_duration).UnixNano() / int64(time.Millisecond)
+	maxDuration, _ := time.ParseDuration(maxDurationStr)
+	maxTime := time.Now().Add(maxDuration).UnixNano() / int64(time.Millisecond)
 	flags.Uint64Var(&e.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
 	flags.StringVar(&e.deviceId, "deviceId", "", "Device ID")
-	flags.StringVar(&e.series, "series", "", "Series name")
+	flags.Var(&e.series, "series", "Series name (can be used multiple times)")
 
 	flags.Uint64Var(&e.limit, "limit", 10, "Max number of results")
 	flags.Uint64Var(&e.from, "from", 0, "Min timestamp (unix time in milliseconds)")
@@ -132,8 +147,11 @@ func getExport(c *Command, ctx *Context) error {
 		device = e.deviceId
 	}
 	reqPath += "/" + device
-	if len(e.series) > 0 {
-		reqPath += "/" + e.series
+	if len(e.series) == 1 {
+		for key := range e.series {
+			reqPath += "/" + key
+			break
+		}
 	}
 
 	req := ctx.Client.Get(reqPath).Expect(200).
@@ -180,16 +198,48 @@ func getExport(c *Command, ctx *Context) error {
 
 	x := make(map[string]interface{})
 	_, err := req.ResponseBody(&x).
-		ResponseBodyHandler(func(token interface{}) error {
+		ResponseBodyHandler(func(body interface{}) error {
 
 		if e.output == outputJson {
-			output, err := json.MarshalIndent(token, "", "  ")
+			if len(e.series) > 0 {
+				bodyMap := *(body.(*map[string]interface{}))
+				results := bodyMap["result"].([]interface{})
+				keep := []interface{}{}
+				for _, val := range results {
+					temp := val.(map[string]interface{})
+					if _, ok := e.series[temp["name"].(string)]; ok {
+						keep = append(keep, val)
+					}
+				}
+				bodyMap["result"] = keep
+			}
+			output, err := json.MarshalIndent(body, "", "  ")
 			fmt.Println(string(output))
 			return err
 		} else {
-			fmt.Println(token)
-			return nil
+			var output string
+			if len(e.series) > 0 {
+				for _, v := range strings.Split(body.(string), "\n") {
+					if strings.Index(v, "project_id") == 0 {
+						output += v
+					} else if len(v) == 0 {
+						continue
+					} else {
+						seriesName := strings.Split(v, ",")[2]
+						if _, ok := e.series[seriesName]; ok {
+							output += v
+						} else {
+							continue
+						}
+					}
+					output += "\n"
+				}
+			} else {
+				output = body.(string)
+			}
+			fmt.Println(output)
 		}
+		return nil
 	}).Execute()
 
 	return err
