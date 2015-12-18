@@ -3,10 +3,11 @@ package command
 import (
 	"bufio"
 	"fmt"
-	"github.com/iobeam/iobeam/client"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/iobeam/iobeam/client"
 )
 
 type projectData struct {
@@ -30,7 +31,7 @@ func (u *projectData) IsValid() bool {
 	return len(u.ProjectName) > 0
 }
 
-// NewProjectCommand returns the base 'project' command.
+// NewProjectsCommand returns the base 'project' command.
 func NewProjectsCommand(ctx *Context) *Command {
 	cmd := &Command{
 		Name:  "project",
@@ -486,6 +487,14 @@ func switchProject(c *Command, ctx *Context) error {
 		pdata.admin = readBoolean("Admin permission? (t)rue/(f)alse: ", bio)
 		return getProjectToken(tokenCmd, ctx)
 	} else {
+		expired, _ := token.IsExpired()
+		if expired {
+			token, err = token.Refresh(ctx.Client, ctx.Profile)
+			if err != nil {
+				fmt.Println("WARNING: Token is expired and could not be refreshed:")
+				return err
+			}
+		}
 		err = ctx.Profile.UpdateActiveProject(token.ProjectId)
 		if err != nil {
 			fmt.Printf("Could not update active project: %s\n", err)

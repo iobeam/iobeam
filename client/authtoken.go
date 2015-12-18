@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -46,6 +47,47 @@ func (t *AuthToken) IsExpired() (bool, error) {
 
 	now := time.Now()
 	return now.After(exp), nil
+}
+
+// Refresh attempts to update a given project token t. If t is not a project token
+// (i.e., a user token) it will error.
+func (t *AuthToken) Refresh(client *Client, p *config.Profile) (*AuthToken, error) {
+	if t.ProjectId <= 0 {
+		return nil, fmt.Errorf("Cannot refresh a non-project token")
+	}
+
+	type data struct {
+		OldToken string `json:"refresh_token"`
+	}
+
+	fmt.Println("Refreshing token...")
+	body := data{OldToken: t.Token}
+	reqPath := "/v1/tokens/project"
+	var projToken *AuthToken
+	_, err := client.Post(reqPath).
+		Expect(200).
+		Body(body).
+		ResponseBody(new(AuthToken)).
+		ResponseBodyHandler(func(token interface{}) error {
+
+		projToken = token.(*AuthToken)
+		err := projToken.Save(p)
+		if err != nil {
+			fmt.Printf("Could not save new token: %s\n", err)
+		}
+
+		err = p.UpdateActiveProject(projToken.ProjectId)
+		if err != nil {
+			fmt.Printf("Could not update active project: %s\n", err)
+		}
+		fmt.Println("New project token acquired.")
+		fmt.Printf("Expires: %v\n", projToken.Expires)
+		fmt.Println("-----")
+
+		return err
+	}).Execute()
+
+	return projToken, err
 }
 
 // Save writes the token to disk in the user's .iobeam directory.
