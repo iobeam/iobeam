@@ -2,9 +2,11 @@ package client
 
 import (
 	"encoding/json"
-	"github.com/iobeam/iobeam/config"
 	"os"
 	"strconv"
+	"time"
+
+	"github.com/iobeam/iobeam/config"
 )
 
 // AuthToken is a representation of both user and project tokens. It contains
@@ -21,6 +23,9 @@ type AuthToken struct {
 	Admin     bool   `json:",omitempty"`
 }
 
+// see time.Parse docs for why this is the case
+const tokenTimeFormat = "2006-01-02 15:04:05 -0700"
+
 const userTokenFile = "token.json"
 const pathSeparator = string(os.PathSeparator)
 
@@ -30,6 +35,17 @@ func userTokenPath(p *config.Profile) string {
 
 func projTokenPath(p *config.Profile, id uint64) string {
 	return p.GetDir() + pathSeparator + "proj_" + strconv.FormatUint(id, 10) + ".json"
+}
+
+// IsExpired reports whether AuthToken t has expired.
+func (t *AuthToken) IsExpired() (bool, error) {
+	exp, err := time.Parse(tokenTimeFormat, t.Expires)
+	if err != nil {
+		return false, err
+	}
+
+	now := time.Now()
+	return now.After(exp), nil
 }
 
 // Save writes the token to disk in the user's .iobeam directory.

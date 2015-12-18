@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/iobeam/iobeam/config"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
+
+	"github.com/iobeam/iobeam/config"
 )
 
 // see time.Parse docs for why this is the case
@@ -125,6 +125,7 @@ func refreshToken(r *Request, t *AuthToken, p *config.Profile) {
 	}).Execute()
 }
 
+// UserToken returns a request with user token set. This function can be chained.
 func (r *Request) UserToken(p *config.Profile) *Request {
 	r.token, _ = ReadUserToken(p)
 	return r
@@ -137,20 +138,20 @@ func (r *Request) ProjectToken(p *config.Profile, id uint64) *Request {
 	if r.token == nil {
 		return r
 	}
-
-	exp, err := time.Parse(tokenTimeForm, r.token.Expires)
+	expired, err := r.token.IsExpired()
 	if err != nil {
 		return r
 	}
 
-	now := time.Now()
-	if now.After(exp) {
+	if expired {
 		refreshToken(r, r.token, p)
 		r.token, _ = ReadProjToken(p, id)
 	}
 	return r
 }
 
+// Expect sets the HTTP status code value that the executed r should expect. This function
+// can be chained.
 func (r *Request) Expect(statusCode int) *Request {
 	r.expectedStatusCode = &statusCode
 	return r
