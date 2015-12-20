@@ -22,8 +22,12 @@ type basicAuth struct {
 	password string
 }
 
+// ResponseBodyHandler is a function called when an API request returns.
+// The function takes an interface{} (usually converted to JSON) and returns
+// an error.
 type ResponseBodyHandler func(responseBody interface{}) error
 
+// Request is an API HTTP request to the iobeam backend.
 type Request struct {
 	client             *Client
 	apiCall            string
@@ -38,7 +42,10 @@ type Request struct {
 	expectedStatusCode *int
 }
 
-func NewRequest(client *Client, method string, apiCall string) *Request {
+// NewRequest creates a new API request to iobeam. It takes a *Client that
+// handles the actual execution, a string for the HTTP method, and a string
+// for the API path.
+func NewRequest(client *Client, method, apiCall string) *Request {
 
 	builder := Request{
 		client:     client,
@@ -51,40 +58,56 @@ func NewRequest(client *Client, method string, apiCall string) *Request {
 	return &builder
 }
 
-func (r *Request) Param(name string, value string) *Request {
+// Param adds a query parameter to the *Request whose value is a string.
+// It returns the *Request so it can be chained.
+func (r *Request) Param(name, value string) *Request {
 	r.parameters.Add(name, value)
 	return r
 }
 
+// ParamBool adds a query parameter to the *Request whose value is a bool.
+// It returns the *Request so it can be chained.
 func (r *Request) ParamBool(name string, value bool) *Request {
 	r.parameters.Add(name, strconv.FormatBool(value))
 	return r
 }
 
+// ParamInt adds a query parameter to the *Request whose value is an int.
+// It returns the *Request so it can be chained.
 func (r *Request) ParamInt(name string, value int) *Request {
 	r.parameters.Add(name, strconv.Itoa(value))
 	return r
 }
 
+// ParamInt64 adds a query parameter to the *Request whose value is an int64.
+// It returns the *Request so it can be chained.
 func (r *Request) ParamInt64(name string, value int64) *Request {
 	r.parameters.Add(name, strconv.FormatInt(value, 10))
 	return r
 }
 
+// ParamUint adds a query parameter to the *Request whose value is a uint.
+// It returns the *Request so it can be chained.
 func (r *Request) ParamUint(name string, value uint) *Request {
 	return r.ParamUint64(name, uint64(value))
 }
 
+// ParamUint64 adds a query parameter to the *Request whose value is a uint64.
+// It returns the *Request so it can be chained.
 func (r *Request) ParamUint64(name string, value uint64) *Request {
 	r.parameters.Add(name, strconv.FormatUint(value, 10))
 	return r
 }
 
+// Body sets the HTTP body of the *Request. It returns the *Request so
+// it can be chained.
 func (r *Request) Body(content interface{}) *Request {
 	r.body = content
 	return r
 }
 
+// BasicAuth sets the username and password to use in case of Basic authentication
+// on the API endpoint. It returns the *Request so it can be chained.
 func (r *Request) BasicAuth(username string, password string) *Request {
 	r.auth = &basicAuth{
 		username: username,
@@ -125,14 +148,14 @@ func refreshToken(r *Request, t *AuthToken, p *config.Profile) {
 	}).Execute()
 }
 
-// UserToken returns a request with user token set. This function can be chained.
+// UserToken returns a request with user token set. It returns the *Request so it can be chained.
 func (r *Request) UserToken(p *config.Profile) *Request {
 	r.token, _ = ReadUserToken(p)
 	return r
 }
 
 // ProjectToken returns a Request with the project token set. If the token is expired,
-// an attempt to refresh the token is made. This function can be chained.
+// an attempt to refresh the token is made. It returns the *Request so it can be chained.
 func (r *Request) ProjectToken(p *config.Profile, id uint64) *Request {
 	r.token, _ = ReadProjToken(p, id)
 	if r.token == nil {
@@ -150,26 +173,32 @@ func (r *Request) ProjectToken(p *config.Profile, id uint64) *Request {
 	return r
 }
 
-// Expect sets the HTTP status code value that the executed r should expect. This function
-// can be chained.
+// Expect sets the HTTP status code value that the executed r should expect.
+// It returns the *Request so it can be chained.
 func (r *Request) Expect(statusCode int) *Request {
 	r.expectedStatusCode = &statusCode
 	return r
 }
 
+// ResponseBody sets the object where the *Request's response should be stored.
+// It returns the *Request so it can be chained.
 func (r *Request) ResponseBody(content interface{}) *Request {
 	r.responseBody = content
 	return r
 }
 
+// ResponseBodyHandler sets the ResponseBodyHandler to use when the request returns.
+// It returns the *Request so it can be chained.
 func (r *Request) ResponseBodyHandler(handler ResponseBodyHandler) *Request {
 	r.handler = handler
 	return r
 }
 
+// Execute causes the API request to be carried out, returning a *Response and
+// possibly an error.
 func (r *Request) Execute() (*Response, error) {
 
-	var reader io.Reader = nil
+	var reader io.Reader
 
 	if r.body != nil {
 		body, err := json.Marshal(r.body)
