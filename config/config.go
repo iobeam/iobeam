@@ -13,14 +13,18 @@ type iobeamConfig struct {
 }
 
 const (
-	CLI_VERSION      = "0.4.0"
-	pathSeparator    = string(os.PathSeparator)
-	dotDirName       = ".iobeam"
-	defaultConfig    = "profile"
-	profileFileName  = "profile.config"
+	// CLIVersion is the version of the CLI.
+	CLIVersion = "0.4.0"
+	// DefaultApiServer is the default iobeam server.
 	DefaultApiServer = "https://api.iobeam.com"
+
+	pathSeparator   = string(os.PathSeparator)
+	dotDirName      = ".iobeam"
+	defaultConfig   = "profile"
+	profileFileName = "profile.config"
 )
 
+// InitConfig sets up the default config.
 func InitConfig() (*iobeamConfig, error) {
 	c := &iobeamConfig{
 		Name: "default",
@@ -106,6 +110,8 @@ func ReadDefaultConfig() (*iobeamConfig, error) {
 	return readConfig(defaultConfigPath())
 }
 
+// Profile represents a CLI profile, which is similar to a workspace
+// that tracks active user, project, and other metadata.
 type Profile struct {
 	Name            string `json:"-"`
 	Server          string `json:"server"`
@@ -115,10 +121,13 @@ type Profile struct {
 	// TODO: Don't export active fields.
 }
 
+// InitProfile creates a new profile on the system named 'name'.
 func InitProfile(name string) (*Profile, error) {
 	return InitProfileWithServer(name, DefaultApiServer)
 }
 
+// InitProfileWithServer creates a new profile on the system named
+// 'name' and uses 'server' for the API server.
 func InitProfileWithServer(name, server string) (*Profile, error) {
 	p := &Profile{
 		Name:          name,
@@ -154,25 +163,30 @@ func (p *Profile) read() error {
 	return readJson(p.GetFile(), p)
 }
 
+// GetDir returns the path to where p's data is stored.
 func (p *Profile) GetDir() string {
 	return baseProfilePath(p.Name)
 }
 
+// GetFile returns the path to where p's metadata is stored.
 func (p *Profile) GetFile() string {
 	return profilePath(p.Name)
 }
 
+// UpdateActiveUser changes the active user id and email of p.
 func (p *Profile) UpdateActiveUser(uid uint64, email string) error {
 	p.ActiveUser = uid
 	p.ActiveUserEmail = email
 	return p.save()
 }
 
+// UpdateActiveProject changes the active project id of p.
 func (p *Profile) UpdateActiveProject(pid uint64) error {
 	p.ActiveProject = pid
 	return p.save()
 }
 
+// ReadProfile attempts to read and create a *Profile object.
 func ReadProfile(name string) (*Profile, error) {
 	p := new(Profile)
 	p.Name = name
@@ -185,13 +199,14 @@ func ReadProfile(name string) (*Profile, error) {
 	return p, nil
 }
 
+// GetProfileList returns a list of available profiles.
 func GetProfileList() ([]string, error) {
 	files, err := ioutil.ReadDir(getDotDir())
 	if err != nil {
 		return nil, err
 	}
 
-	list := make([]string, 0)
+	var list []string
 	for _, f := range files {
 		if f.IsDir() {
 			list = append(list, f.Name())
@@ -201,6 +216,7 @@ func GetProfileList() ([]string, error) {
 	return list, nil
 }
 
+// SwitchProfile attempts to change the active profile.
 func SwitchProfile(name string) error {
 	path := baseProfilePath(name)
 	_, err := os.Stat(path)
@@ -217,6 +233,7 @@ func SwitchProfile(name string) error {
 	return err
 }
 
+// DeleteProfile removes a profile from the system.
 func DeleteProfile(name string) error {
 	path := baseProfilePath(name)
 	_, err := os.Stat(path)
