@@ -167,8 +167,7 @@ func (r *Request) ProjectToken(p *config.Profile, id uint64) *Request {
 	}
 
 	if expired {
-		refreshToken(r, r.token, p)
-		r.token, _ = ReadProjToken(p, id)
+		r.token, _ = r.token.Refresh(r.client, p)
 	}
 	return r
 }
