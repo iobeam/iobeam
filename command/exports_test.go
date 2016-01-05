@@ -52,6 +52,8 @@ func TestDefaultExportDataIsValid(t *testing.T) {
 	innerTest(t, cases)
 }
 
+// TestTimeRangeExportDataIsValid tests if the validity checks for
+// time ranges are working.
 func TestTimeRangeExportDataIsValid(t *testing.T) {
 	cases := []testcase{
 		{
@@ -112,6 +114,8 @@ func TestTimeRangeExportDataIsValid(t *testing.T) {
 	innerTest(t, cases)
 }
 
+// TestValRangeExportDataIsValid tests if the validity checks for
+// value ranges are working.
 func TestValRangeExportDataIsValid(t *testing.T) {
 	cases := []testcase{
 		{
@@ -169,6 +173,266 @@ func TestValRangeExportDataIsValid(t *testing.T) {
 				output:      "json",
 				greaterThan: 10,
 				lessThan:    0,
+			},
+			want: false,
+		},
+	}
+
+	innerTest(t, cases)
+}
+
+func TestEqualExportDataIsValid(t *testing.T) {
+	cases := []testcase{
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				equal:     "0",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				equal:     "-10",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				equal:     "10",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				equal:     "not a number",
+			},
+			want: false,
+		},
+	}
+
+	innerTest(t, cases)
+}
+
+func TestOpExportDataIsValid(t *testing.T) {
+	cases := []testcase{
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				operator:  "sum",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				operator:  "count",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				operator:  "min",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				operator:  "max",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				operator:  "mean",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				operator:  "not an op",
+			},
+			want: false,
+		},
+	}
+
+	innerTest(t, cases)
+}
+
+func TestGroupExportDataIsValid(t *testing.T) {
+	cases := []testcase{
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				operator:  "sum",
+				groupBy:   "1h",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				operator:  "count",
+				groupBy:   "12q", // q not a valid unit
+			},
+			want: false,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+				groupBy:   "1h", // no operator
+			},
+			want: false,
+		},
+	}
+
+	innerTest(t, cases)
+}
+
+func TestTimeFmtExportDataIsValid(t *testing.T) {
+	cases := []testcase{
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "sec",
+				output:    "json",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "usec",
+				output:    "json",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "timeval",
+				output:    "json",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "not valid",
+				output:    "json",
+			},
+			want: false,
+		},
+	}
+
+	innerTest(t, cases)
+}
+
+func TestOutputExportDataIsValid(t *testing.T) {
+	cases := []testcase{
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "json",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "csv",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1,
+				limit:     1,
+				from:      0,
+				timeFmt:   "msec",
+				output:    "not valid",
 			},
 			want: false,
 		},
