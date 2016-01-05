@@ -81,7 +81,7 @@ func (e *exportData) IsValid() bool {
 	pidOk := e.projectId > 0
 	limitOk := e.limit > 0
 	rangeOk := e.from <= e.to
-	valRangeOk := e.greaterThan <= e.greaterThan
+	valRangeOk := e.greaterThan <= e.lessThan
 
 	equalOk := len(e.equal) == 0
 	if !equalOk {
