@@ -120,17 +120,20 @@ func NewExportCommand(ctx *Context) *Command {
 	maxDuration, _ := time.ParseDuration(maxDurationStr)
 	maxTime := time.Now().Add(maxDuration).UnixNano() / int64(time.Millisecond)
 	flags.Uint64Var(&e.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
-	flags.StringVar(&e.deviceId, "deviceId", "", "Device ID")
-	flags.Var(&e.series, "series", "Series name (can be used multiple times)")
+	flags.StringVar(&e.deviceId, "deviceId", "", "Device ID to filter results.")
+	flags.Var(&e.series, "series", "Series name(s) to filter results (flag can be used multiple times).")
+	flags.Uint64Var(&e.limit, "limit", 10, "Max number of results per stream.")
 
-	flags.Uint64Var(&e.limit, "limit", 10, "Max number of results")
-	flags.Uint64Var(&e.from, "from", 0, "Min timestamp (unix time in milliseconds)")
-	flags.Uint64Var(&e.to, "to", uint64(maxTime), "Max timestamp (unix time in milliseconds, default is now + a day)")
-	flags.Int64Var(&e.lessThan, "lessThan", math.MaxInt64, "Max value for datapoints")
-	flags.Int64Var(&e.greaterThan, "greaterThan", math.MinInt64, "Min value for datapoints")
-	flags.StringVar(&e.equal, "equalTo", "", "Datapoints with this value")
+	flags.Uint64Var(&e.from, "from", 0, "Min timestamp of datapoints (unix time in milliseconds)")
+	flags.Uint64Var(&e.to, "to", uint64(maxTime), "Max timestamp for datapoints (unix time in milliseconds, default is now + a day)")
+
+	flags.Int64Var(&e.lessThan, "lessThan", math.MaxInt64, "Max value for datapoints. Cannot be less than 'greaterThan' value.")
+	flags.Int64Var(&e.greaterThan, "greaterThan", math.MinInt64, "Min value for datapoints. Cannot be greater than 'lessThan' value.")
+	flags.StringVar(&e.equal, "equalTo", "", "Only return datapoints with this value.")
+
 	flags.StringVar(&e.operator, "operator", "", "Aggregation function to apply to datapoints: "+strings.Join(ops, ", "))
-	flags.StringVar(&e.groupBy, "groupBy", "", "Group data by [number][period], where the time period can be ms, s, m, or h (e.g., 30s, 15m, 6h). Requires a valid operator.")
+	flags.StringVar(&e.groupBy, "groupBy", "", "Group data by [number][period], where the time period can be ms, s, m, or h. Examples of valid values: '30s', '15m', '6h'. Requires a valid operator.")
+
 	flags.StringVar(&e.timeFmt, "timeFmt", "msec", "Time unit to display timestamps: "+strings.Join(timeFmts, ", "))
 	flags.StringVar(&e.output, "output", "json", "Output format of the results. Valid outputs: json, csv")
 	return cmd
