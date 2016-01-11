@@ -2,6 +2,8 @@ package command
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 )
 
 type deviceData struct {
@@ -176,12 +178,27 @@ func getDevice(c *Command, ctx *Context) error {
 	return err
 }
 
+const (
+	orderName        = "name"
+	orderNameReverse = "name-r"
+	orderId          = "id"
+	orderIdReverse   = "id-r"
+	orderDate        = "date"
+	orderDateReverse = "date-r"
+)
+
+var orders = []string{orderName, orderNameReverse, orderId, orderIdReverse,
+	orderDate, orderDateReverse}
+
 type listData struct {
 	projectId uint64
+	order     string
 }
 
 func (d *listData) IsValid() bool {
-	return d.projectId != 0
+	pidOk := d.projectId > 0
+	orderOk := isInList(d.order, orders)
+	return pidOk && orderOk
 }
 
 func newListDevicesCmd(ctx *Context) *Command {
@@ -197,15 +214,46 @@ func newListDevicesCmd(ctx *Context) *Command {
 	flags := cmd.NewFlagSet("iobeam device list")
 	flags.Uint64Var(&data.projectId, "projectId", ctx.Profile.ActiveProject,
 		"Project ID to get devices from (if omitted, defaults to active project)")
+	flags.StringVar(&data.order, "order", orderDate,
+		"Sort order for results. Valid values: date(-r), id(-r), name(-r). Values ending with -r are reverse ordering.")
 
 	return cmd
+}
+
+type deviceSort struct {
+	items []deviceData
+	order string
+}
+
+func (a deviceSort) Len() int      { return len(a.items) }
+func (a deviceSort) Swap(i, j int) { a.items[i], a.items[j] = a.items[j], a.items[i] }
+func (a deviceSort) Less(i, j int) bool {
+	switch a.order {
+	case "name":
+		return strings.Compare(a.items[i].DeviceName, a.items[j].DeviceName) < 0
+	case "name-r":
+		return strings.Compare(a.items[j].DeviceName, a.items[i].DeviceName) < 0
+	case "id":
+		return strings.Compare(a.items[i].DeviceId, a.items[j].DeviceId) < 0
+	case "id-r":
+		return strings.Compare(a.items[j].DeviceId, a.items[i].DeviceId) < 0
+	case "date-r":
+		return strings.Compare(a.items[j].Created, a.items[i].Created) < 0
+	case "date":
+		fallthrough
+	default:
+		return strings.Compare(a.items[i].Created, a.items[j].Created) < 0
+	}
+	return false
 }
 
 func listDevices(c *Command, ctx *Context) error {
 	type deviceList struct {
 		Devices []deviceData
 	}
-	pid := c.Data.(*listData).projectId
+
+	cmdArgs := c.Data.(*listData)
+	pid := cmdArgs.projectId
 
 	_, err := ctx.Client.
 		Get(c.ApiPath).
@@ -219,7 +267,10 @@ func listDevices(c *Command, ctx *Context) error {
 
 		fmt.Printf("Devices in project %v\n", pid)
 		fmt.Println("-----")
-		for _, device := range list.Devices {
+
+		sorted := &deviceSort{items: list.Devices, order: cmdArgs.order}
+		sort.Sort(sorted)
+		for _, device := range sorted.items {
 
 			fmt.Printf("Name: %v\n"+
 				"Device ID: %v\n"+
