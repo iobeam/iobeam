@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"sort"
-	"strings"
 )
 
 type deviceData struct {
@@ -230,19 +229,19 @@ func (a deviceSort) Swap(i, j int) { a.items[i], a.items[j] = a.items[j], a.item
 func (a deviceSort) Less(i, j int) bool {
 	switch a.order {
 	case "name":
-		return strings.Compare(a.items[i].DeviceName, a.items[j].DeviceName) < 0
+		return a.items[i].DeviceName < a.items[j].DeviceName
 	case "name-r":
-		return strings.Compare(a.items[j].DeviceName, a.items[i].DeviceName) < 0
+		return a.items[j].DeviceName < a.items[i].DeviceName
 	case "id":
-		return strings.Compare(a.items[i].DeviceId, a.items[j].DeviceId) < 0
+		return a.items[i].DeviceId < a.items[j].DeviceId
 	case "id-r":
-		return strings.Compare(a.items[j].DeviceId, a.items[i].DeviceId) < 0
+		return a.items[i].DeviceId < a.items[j].DeviceId
 	case "date-r":
-		return strings.Compare(a.items[j].Created, a.items[i].Created) < 0
+		return a.items[j].Created < a.items[i].Created
 	case "date":
 		fallthrough
 	default:
-		return strings.Compare(a.items[i].Created, a.items[j].Created) < 0
+		return a.items[i].Created < a.items[j].Created
 	}
 	return false
 }
