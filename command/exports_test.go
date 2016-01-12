@@ -347,6 +347,35 @@ func TestGroupExportDataIsValid(t *testing.T) {
 	innerTest(t, cases)
 }
 
+// TestLastExportDataIsValid tests that the validity check for 'last' flag is correct.
+func TestLastExportDataIsValid(t *testing.T) {
+	cases := []testcase{
+		{
+			in: &exportData{
+				projectId: 1, limit: 1, timeFmt: "msec", output: "json",
+				last: "1h",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1, limit: 1, timeFmt: "msec", output: "json",
+				last: "1d",
+			},
+			want: true,
+		},
+		{
+			in: &exportData{
+				projectId: 1, limit: 1, timeFmt: "msec", output: "json",
+				last: "1w", // w is not valid
+			},
+			want: false,
+		},
+	}
+
+	innerTest(t, cases)
+}
+
 func TestTimeFmtExportDataIsValid(t *testing.T) {
 	cases := []testcase{
 		{

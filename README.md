@@ -87,6 +87,9 @@ the next section.*
     # Query multiple series under a given project
     $ iobeam query -projectId=<project_id> -series="<series_name1>" -series="<series_name2>"
 
+    # Query a specific data stream over the last day
+    $ iobeam query -projectId=<project_id> -series="<series_name>" -last="1d"
+
 The REST API also supports richer queries with operators (e.g., `mean`, `min`, `max`), date / value
 ranges, time-series rollups, and more. Please refer to our [Exports API](http://docs.iobeam.com/exports/)
 for more information.

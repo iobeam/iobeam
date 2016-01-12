@@ -64,6 +64,8 @@ type exportData struct {
 	greaterThan int64
 	equal       string
 
+	last string
+
 	operator string
 	groupBy  string
 }
@@ -97,10 +99,20 @@ func (e *exportData) IsValid() bool {
 		groupOk = err == nil && len(e.operator) > 0
 	}
 
+	lastOk := len(e.last) == 0
+	if !lastOk {
+		temp := e.last
+		if strings.Contains(e.last, "d") {
+			temp = strings.Replace(e.last, "d", "h", -1)
+		}
+		_, err := time.ParseDuration(temp)
+		lastOk = err == nil
+	}
+
 	timeOk := isInList(e.timeFmt, timeFmts)
 	outputOk := isInList(e.output, outputs)
 
-	return pidOk && limitOk && rangeOk && valRangeOk && equalOk && opOk && groupOk && timeOk && outputOk
+	return pidOk && limitOk && rangeOk && valRangeOk && equalOk && opOk && groupOk && lastOk && timeOk && outputOk
 }
 
 // NewExportCommand returns the base 'export' command.
@@ -133,6 +145,8 @@ func NewExportCommand(ctx *Context) *Command {
 
 	flags.StringVar(&e.operator, "operator", "", "Aggregation function to apply to datapoints: "+strings.Join(ops, ", "))
 	flags.StringVar(&e.groupBy, "groupBy", "", "Group data by [number][period], where the time period can be ms, s, m, or h. Examples of valid values: '30s', '15m', '6h'. Requires a valid operator.")
+
+	flags.StringVar(&e.last, "last", "", "Get datapoints for the previous [number][period] timeframe. 'period' can be: ms, s, m, h, d.")
 
 	flags.StringVar(&e.timeFmt, "timeFmt", "msec", "Time unit to display timestamps: "+strings.Join(timeFmts, ", "))
 	flags.StringVar(&e.output, "output", "json", "Output format of the results. Valid outputs: json, csv")
@@ -197,6 +211,21 @@ func getExport(c *Command, ctx *Context) error {
 		if len(e.groupBy) > 0 {
 			req = req.Param("group_by", e.groupBy)
 		}
+	}
+
+	if len(e.last) > 0 {
+		factor := 1
+		// Go does not support duration unit of 'd' for day, but we can
+		// fake it by converting it to hours then multiplying by 24
+		// TODO(rrk) This won't work with mixed durations like 1d5m, but this might be unlikely.
+		if strings.Contains(e.last, "d") {
+			factor = 24
+			e.last = strings.Replace(e.last, "d", "h", -1)
+		}
+		duration, _ := time.ParseDuration(e.last)
+		duration = time.Duration(int64(duration) * int64(factor))
+		f := time.Now().Add(-1*duration).UnixNano() / int64(time.Millisecond)
+		req = req.ParamInt64("from", f)
 	}
 
 	x := make(map[string]interface{})
