@@ -1,13 +1,16 @@
 package command
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/iobeam/iobeam/client"
-	"github.com/iobeam/iobeam/config"
 	"os"
 	"sort"
+
+	"github.com/iobeam/iobeam/client"
+	"github.com/iobeam/iobeam/config"
 )
 
 // Data is an interface for data that is posted to API, generated from command-line input.
@@ -15,6 +18,7 @@ type Data interface {
 	IsValid() bool
 }
 
+// Context is the current CLI context.
 type Context struct {
 	Cmd     *Command
 	Client  *client.Client
@@ -26,8 +30,8 @@ type Context struct {
 // Mux maps a subcommand name to its Command object.
 type Mux map[string]*Command
 
-// CommandAction is a function that is called when a command is invoked.
-type CommandAction func(*Command, *Context) error
+// Action is a function that is called when a command is invoked.
+type Action func(*Command, *Context) error
 
 // Command is a representation of a CLI command including its name, usage,
 // what API path it corresponds to (if any), flags, subcommands (if any), API data, and
@@ -39,19 +43,21 @@ type Command struct {
 	flags       *flag.FlagSet
 	SubCommands Mux
 	Data        Data
-	Action      CommandAction
+	Action      Action
 }
 
+// NewFlagSet creates a FlagSet to use for a command, making sure it is properly
+// linked to the right print usage function.
 func (c *Command) NewFlagSet(name string) *flag.FlagSet {
 	f := flag.NewFlagSet(name, flag.ExitOnError)
 	f.Usage = func() {
-		c.PrintUsage()
+		c.printUsage()
 	}
 	c.flags = f
 	return f
 }
 
-func (c *Command) PrintUsage() {
+func (c *Command) printUsage() {
 
 	if c.SubCommands != nil {
 		fmt.Fprintf(os.Stderr, "Usage: %s COMMAND [FLAGS]\n\n", c.Name)
@@ -60,7 +66,7 @@ func (c *Command) PrintUsage() {
 		fmt.Fprint(os.Stderr, "\nAvailable Commands:\n")
 
 		subs := make([]string, 0, len(c.SubCommands))
-		for k, _ := range c.SubCommands {
+		for k := range c.SubCommands {
 			subs = append(subs, k)
 		}
 		sort.Strings(subs)
@@ -76,8 +82,16 @@ func (c *Command) PrintUsage() {
 	}
 
 	if c.flags != nil {
-		fmt.Fprint(os.Stderr, "\nAvailable Flags:\n")
+		var b bytes.Buffer
+		writer := bufio.NewWriter(&b)
+		c.flags.SetOutput(writer)
 		c.flags.PrintDefaults()
+
+		if writer.Buffered() > 0 {
+			fmt.Fprint(os.Stderr, "\nAvailable Flags:\n")
+			writer.Flush()
+			b.WriteTo(os.Stderr)
+		}
 	}
 }
 
@@ -112,7 +126,7 @@ func (c *Command) Execute(ctx *Context) error {
 			return sc.Execute(ctx)
 		}
 	}
-	c.PrintUsage()
+	c.printUsage()
 
 	return nil
 }

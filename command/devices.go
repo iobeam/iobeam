@@ -52,7 +52,7 @@ func NewDevicesCommand(ctx *Context) *Command {
 	return cmd
 }
 
-func newCreateOrUpdateDeviceCmd(ctx *Context, update bool, name string, action CommandAction) *Command {
+func newCreateOrUpdateDeviceCmd(ctx *Context, update bool, name string, action Action) *Command {
 	device := deviceData{
 		isUpdate: update,
 	}

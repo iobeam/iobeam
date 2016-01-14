@@ -3,15 +3,16 @@ package command
 import (
 	"errors"
 	"fmt"
-	"github.com/iobeam/iobeam/config"
 	"strconv"
+
+	"github.com/iobeam/iobeam/config"
 )
 
 // NewConfigCommand returns the base 'config' command.
 func NewConfigCommand() *Command {
 	cmd := &Command{
 		Name:  "profile",
-		Usage: "Manage CLI profile",
+		Usage: "Manage CLI profiles",
 		SubCommands: Mux{
 			"create": newCreateProfileCmd(),
 			"delete": newDeleteProfileCmd(),

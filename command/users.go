@@ -3,8 +3,9 @@ package command
 import (
 	"bufio"
 	"fmt"
-	"github.com/iobeam/iobeam/client"
 	"os"
+
+	"github.com/iobeam/iobeam/client"
 )
 
 type userData struct {
@@ -68,7 +69,7 @@ func requiredArg(required bool) string {
 	return ""
 }
 
-func newCreateOrUpdateUserCmd(update bool, name string, action CommandAction) *Command {
+func newCreateOrUpdateUserCmd(update bool, name string, action Action) *Command {
 	user := userData{
 		isUpdate: update,
 	}

@@ -52,7 +52,7 @@ func NewProjectsCommand(ctx *Context) *Command {
 	return cmd
 }
 
-func newCreateOrUpdateProjectCmd(ctx *Context, name string, action CommandAction) *Command {
+func newCreateOrUpdateProjectCmd(ctx *Context, name string, action Action) *Command {
 	update := ctx != nil
 	proj := projectData{
 		isUpdate: update,
