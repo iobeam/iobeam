@@ -40,7 +40,7 @@ func NewTriggersCommand(ctx *Context) *Command {
 type triggerData struct {
 	TriggerId   uint64 `json:"trigger_id",omitempty`
 	ProjectId   uint64 `json:"project_id"`
-	TriggerName string `json:"name"`
+	TriggerName string `json:"trigger_name"`
 	DataExpiry  uint64 `json:"data_expiry",omitempty`
 }
 
@@ -108,7 +108,7 @@ func newListTriggersCommand(ctx *Context) *Command {
 func getAllTriggers(c *Command, ctx *Context) error {
 	args := c.Data.(*triggerListArgs)
 	type triggersResult struct {
-		Triggers []fullTrigger `json:"results"`
+		Triggers []fullTrigger
 	}
 
 	_, err := ctx.Client.Get(c.ApiPath).Expect(200).
