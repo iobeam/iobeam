@@ -3,6 +3,9 @@ package command
 import (
 	"flag"
 	"fmt"
+	"strconv"
+
+	"github.com/iobeam/iobeam/client"
 )
 
 const (
@@ -19,6 +22,9 @@ func NewTriggersCommand(ctx *Context) *Command {
 		Usage: "Commands for managing triggers.",
 		SubCommands: Mux{
 			"create": newCreateTriggerCommand(ctx),
+			"delete": newDeleteTriggerCommand(ctx),
+			"get":    newGetTriggerCommand(ctx),
+			"list":   newListTriggersCommand(ctx),
 		},
 	}
 	cmd.NewFlagSet("iobeam trigger")
@@ -54,6 +60,174 @@ type fullTrigger struct {
 	triggerData
 	Actions []triggerAction `json:"actions"`
 }
+
+func (t *fullTrigger) Print() {
+	fmt.Println("Trigger ID  :", t.TriggerId)
+	fmt.Println("Trigger name:", t.TriggerName)
+	fmt.Println("Project ID  :", t.ProjectId)
+	fmt.Println("Data expiry :", t.DataExpiry)
+	fmt.Println("Actions:")
+	i := 1
+	for _, a := range t.Actions {
+		if i != 1 {
+			fmt.Println()
+		}
+		fmt.Printf("  %d) Action type: %s\n", i, a.Type)
+		fmt.Println("     Min delay  :", a.MinDelay)
+		fmt.Printf("     Args: %v\n", a.Args)
+	}
+	fmt.Println()
+}
+
+// List command data and functions
+
+type triggerListArgs struct {
+	projectId uint64
+}
+
+func (a *triggerListArgs) IsValid() bool {
+	return a.projectId > 0
+}
+
+func newListTriggersCommand(ctx *Context) *Command {
+	a := new(triggerListArgs)
+	cmd := &Command{
+		Name:    "list",
+		ApiPath: "/v1/triggers",
+		Usage:   "Get all triggers for a project",
+		Data:    a,
+		Action:  getAllTriggers,
+	}
+
+	flags := cmd.NewFlagSet("list")
+	flags.Uint64Var(&a.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID to get triggers from.")
+
+	return cmd
+}
+
+func getAllTriggers(c *Command, ctx *Context) error {
+	args := c.Data.(*triggerListArgs)
+	type triggersResult struct {
+		Triggers []fullTrigger `json:"results"`
+	}
+
+	_, err := ctx.Client.Get(c.ApiPath).Expect(200).
+		ProjectToken(ctx.Profile, args.projectId).
+		ResponseBody(new(triggersResult)).
+		ResponseBodyHandler(func(resp interface{}) error {
+		results := resp.(*triggersResult)
+		for _, t := range results.Triggers {
+			t.Print()
+		}
+		return nil
+	}).Execute()
+
+	return err
+}
+
+// Single get data and functions
+
+type triggerGetArgs struct {
+	projectId   uint64
+	triggerId   uint64
+	triggerName string
+}
+
+func (a *triggerGetArgs) IsValid() bool {
+	return a.projectId > 0 && (a.triggerId > 0 || len(a.triggerName) > 0)
+}
+
+func newGetTriggerCommand(ctx *Context) *Command {
+	a := new(triggerGetArgs)
+	cmd := &Command{
+		Name:    "get",
+		ApiPath: "/v1/triggers",
+		Usage:   "Get trigger matching a name or id",
+		Data:    a,
+		Action:  getTrigger,
+	}
+
+	flags := cmd.NewFlagSet("get")
+	flags.Uint64Var(&a.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID to get trigger from.")
+	flags.Uint64Var(&a.triggerId, "id", 0, "Trigger ID to get (either this or -name must be set).")
+	flags.StringVar(&a.triggerName, "name", "", "Trigger name to get (either this or -id must be set).")
+
+	return cmd
+}
+
+func getTrigger(c *Command, ctx *Context) error {
+	args := c.Data.(*triggerGetArgs)
+	var req *client.Request
+	if args.triggerId > 0 {
+		req = ctx.Client.Get(c.ApiPath + "/" + strconv.FormatUint(args.triggerId, 10))
+	} else {
+		req = ctx.Client.Get(c.ApiPath).Param("name", args.triggerName)
+	}
+
+	_, err := req.Expect(200).
+		ProjectToken(ctx.Profile, args.projectId).
+		ResponseBody(new(fullTrigger)).
+		ResponseBodyHandler(func(resp interface{}) error {
+		t := resp.(*fullTrigger)
+		t.Print()
+		return nil
+	}).Execute()
+
+	return err
+}
+
+// Delete data and functions
+
+type triggerDeleteArgs struct {
+	projectId   uint64
+	triggerId   uint64
+	triggerName string
+}
+
+func (a *triggerDeleteArgs) IsValid() bool {
+	return a.projectId > 0 && (a.triggerId > 0 || len(a.triggerName) > 0)
+}
+
+func newDeleteTriggerCommand(ctx *Context) *Command {
+	a := new(triggerDeleteArgs)
+	cmd := &Command{
+		Name:    "delete",
+		ApiPath: "/v1/triggers",
+		Usage:   "Delete trigger by id",
+		Data:    a,
+		Action:  deleteTrigger,
+	}
+
+	flags := cmd.NewFlagSet("delete")
+	flags.Uint64Var(&a.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID to delete trigger from.")
+	flags.Uint64Var(&a.triggerId, "id", 0, "Trigger ID to delete.")
+	// TODO: Support delete by name eventually
+	//flags.StringVar(&a.triggerName, "name", "", "Trigger name to get (either this or -id must be set).")
+
+	return cmd
+}
+
+func deleteTrigger(c *Command, ctx *Context) error {
+	args := c.Data.(*triggerDeleteArgs)
+	var req *client.Request
+	if args.triggerId > 0 {
+		req = ctx.Client.Delete(c.ApiPath + "/" + strconv.FormatUint(args.triggerId, 10))
+	} else {
+		req = ctx.Client.Delete(c.ApiPath).Param("name", args.triggerName)
+	}
+
+	_, err := req.Expect(204).
+		ProjectToken(ctx.Profile, args.projectId).
+		Execute()
+
+	if err == nil {
+		fmt.Println("Device successfully deleted")
+	}
+
+	return err
+}
+
+// Create data and functions
 
 func newCreateTriggerCommand(ctx *Context) *Command {
 	cmd := &Command{
