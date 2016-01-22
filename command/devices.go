@@ -26,6 +26,15 @@ func (d *deviceData) IsValid() bool {
 	return d.ProjectId != 0
 }
 
+func (d *deviceData) Print() {
+	fmt.Println("Device ID  :", d.DeviceId)
+	fmt.Println("Device name:", d.DeviceName)
+	fmt.Println("Project ID :", d.ProjectId)
+	fmt.Println("Type       :", d.DeviceType)
+	fmt.Println("Created    :", d.Created)
+	fmt.Println()
+}
+
 // baseDeviceArgs is a simpler struct for calls that just consist of
 // optionally a projectId and either (a) a device id or (b) a device name
 type baseDeviceArgs struct {
@@ -167,17 +176,7 @@ func getDevice(c *Command, ctx *Context) error {
 		ProjectToken(ctx.Profile, data.projectId).
 		ResponseBody(device).
 		ResponseBodyHandler(func(body interface{}) error {
-		device = body.(*deviceData)
-		fmt.Printf("Device name: %v\n"+
-			"Device ID: %v\n"+
-			"Project ID: %v\n"+
-			"Type: %v\n"+
-			"Created: %v\n",
-			device.DeviceName,
-			device.DeviceId,
-			device.ProjectId,
-			device.DeviceType,
-			device.Created)
+		body.(*deviceData).Print()
 
 		return nil
 	}).Execute()
@@ -278,15 +277,7 @@ func listDevices(c *Command, ctx *Context) error {
 		sorted := &deviceSort{items: list.Devices, order: cmdArgs.order}
 		sort.Sort(sorted)
 		for _, device := range sorted.items {
-
-			fmt.Printf("Name: %v\n"+
-				"Device ID: %v\n"+
-				"Type: %v\n"+
-				"Created: %v\n\n",
-				device.DeviceName,
-				device.DeviceId,
-				device.DeviceType,
-				device.Created)
+			device.Print()
 		}
 
 		return nil
