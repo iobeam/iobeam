@@ -26,7 +26,7 @@ func NewImportCommand(ctx *Context) *Command {
 	cmd := &Command{
 		Name:    "import",
 		ApiPath: "/v1/imports",
-		Usage:   "Add data to a project",
+		Usage:   "Add new data points.",
 		Data:    d,
 		Action:  sendImport,
 	}

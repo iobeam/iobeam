@@ -12,7 +12,7 @@ import (
 func NewConfigCommand() *Command {
 	cmd := &Command{
 		Name:  "profile",
-		Usage: "Manage CLI profiles",
+		Usage: "Manage your CLI profiles.",
 		SubCommands: Mux{
 			"create": newCreateProfileCmd(),
 			"delete": newDeleteProfileCmd(),

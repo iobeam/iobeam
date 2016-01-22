@@ -3,8 +3,9 @@ package command
 import (
 	"bufio"
 	"fmt"
-	"github.com/iobeam/iobeam/client"
 	"os"
+
+	"github.com/iobeam/iobeam/client"
 )
 
 type basicAuthData struct {
@@ -22,7 +23,7 @@ func newGetUserTokenCmd() *Command {
 	cmd := &Command{
 		Name:    "login",
 		ApiPath: "/v1/tokens/user",
-		Usage:   "Log in as a user / switch active user. If flag is not set, you will be prompted for email/username.",
+		Usage:   "Login / switch active user.",
 		Data:    t,
 		Action:  getUserToken,
 	}

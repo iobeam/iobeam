@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 type deviceData struct {
@@ -60,7 +61,7 @@ func newCreateOrUpdateDeviceCmd(ctx *Context, update bool, name string, action A
 	cmd := &Command{
 		Name:    name,
 		ApiPath: "/v1/devices",
-		Usage:   name + " device",
+		Usage:   strings.Title(name) + " device.",
 		Data:    &device,
 		Action:  action,
 	}
@@ -136,7 +137,7 @@ func newGetDeviceCmd(ctx *Context) *Command {
 	cmd := &Command{
 		Name:    "get",
 		ApiPath: "/v1/devices",
-		Usage:   "get device information",
+		Usage:   "Get device information.",
 		Data:    data,
 		Action:  getDevice,
 	}
@@ -206,7 +207,7 @@ func newListDevicesCmd(ctx *Context) *Command {
 	cmd := &Command{
 		Name:    "list",
 		ApiPath: "/v1/devices",
-		Usage:   "List devices for a given project.",
+		Usage:   "List devices in a project.",
 		Data:    data,
 		Action:  listDevices,
 	}
@@ -293,7 +294,7 @@ func newDeleteDeviceCmd(ctx *Context) *Command {
 	cmd := &Command{
 		Name:    "delete",
 		ApiPath: "/v1/devices",
-		Usage:   "delete device",
+		Usage:   "Delete device.",
 		Data:    data,
 		Action:  deleteDevice,
 	}

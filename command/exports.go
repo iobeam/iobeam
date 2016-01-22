@@ -123,7 +123,7 @@ func NewExportCommand(ctx *Context) *Command {
 	cmd := &Command{
 		Name:    "query",
 		ApiPath: "/v1/exports",
-		Usage:   "Get data for projects, devices, and series",
+		Usage:   "Get data for projects, devices, and series.",
 		Data:    e,
 		Action:  getExport,
 	}

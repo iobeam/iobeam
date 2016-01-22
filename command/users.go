@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/iobeam/iobeam/client"
 )
@@ -81,7 +82,7 @@ func newCreateOrUpdateUserCmd(update bool, name string, action Action) *Command 
 	cmd := &Command{
 		Name:    name,
 		ApiPath: apiPath,
-		Usage:   name + " user",
+		Usage:   strings.Title(name) + " user.",
 		Data:    &user,
 		Action:  action,
 	}
@@ -196,7 +197,7 @@ func newGetUserCmd(ctx *Context) *Command {
 	cmd := &Command{
 		Name:    "get",
 		ApiPath: "/v1/users",
-		Usage:   "get user information",
+		Usage:   "Get user information.",
 		Data:    &user,
 		Action:  getUser,
 	}
@@ -246,7 +247,7 @@ func newSearchUsersCmd() *Command {
 	cmd := &Command{
 		Name:    "search",
 		ApiPath: "/v1/users",
-		Usage:   "search for users",
+		Usage:   "Search for a user.",
 		Data:    &user,
 		Action:  searchUsers,
 	}
@@ -302,7 +303,7 @@ func newVerifyEmailCmd() *Command {
 	cmd := &Command{
 		Name:    "verify-email",
 		ApiPath: "/v1/users/email",
-		Usage:   "verify email",
+		Usage:   "Verify email address.",
 		Data:    email,
 		Action:  verifyEmail,
 	}
@@ -343,7 +344,7 @@ func newNewPasswordCmd() *Command {
 	cmd := &Command{
 		Name:    "reset-pw",
 		ApiPath: "/v1/users/password",
-		Usage:   "change password",
+		Usage:   "Change password.",
 		Data:    pw,
 		Action:  resetPassword,
 	}
