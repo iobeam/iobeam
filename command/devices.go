@@ -179,11 +179,11 @@ func getDevice(c *Command, ctx *Context) error {
 
 const (
 	orderName        = "name"
-	orderNameReverse = "name-r"
+	orderNameReverse = orderName + "-r"
 	orderId          = "id"
-	orderIdReverse   = "id-r"
+	orderIdReverse   = orderId + "-r"
 	orderDate        = "date"
-	orderDateReverse = "date-r"
+	orderDateReverse = orderDate + "-r"
 )
 
 var orders = []string{orderName, orderNameReverse, orderId, orderIdReverse,
@@ -228,17 +228,17 @@ func (a deviceSort) Len() int      { return len(a.items) }
 func (a deviceSort) Swap(i, j int) { a.items[i], a.items[j] = a.items[j], a.items[i] }
 func (a deviceSort) Less(i, j int) bool {
 	switch a.order {
-	case "name":
+	case orderName:
 		return a.items[i].DeviceName < a.items[j].DeviceName
-	case "name-r":
+	case orderNameReverse:
 		return a.items[j].DeviceName < a.items[i].DeviceName
-	case "id":
+	case orderId:
 		return a.items[i].DeviceId < a.items[j].DeviceId
-	case "id-r":
+	case orderIdReverse:
 		return a.items[i].DeviceId < a.items[j].DeviceId
-	case "date-r":
+	case orderDateReverse:
 		return a.items[j].Created < a.items[i].Created
-	case "date":
+	case orderDate:
 		fallthrough
 	default:
 		return a.items[i].Created < a.items[j].Created
