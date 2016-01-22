@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/iobeam/iobeam/client"
 )
 
 type deviceData struct {
@@ -24,15 +26,16 @@ func (d *deviceData) IsValid() bool {
 	return d.ProjectId != 0
 }
 
-// deviceId is a simpler struct for calls that just consist of a device id
-// and optionally projectId
-type deviceId struct {
-	id        string
+// baseDeviceArgs is a simpler struct for calls that just consist of
+// optionally a projectId and either (a) a device id or (b) a device name
+type baseDeviceArgs struct {
 	projectId uint64
+	id        string
+	name      string
 }
 
-func (d *deviceId) IsValid() bool {
-	return len(d.id) > 0
+func (d *baseDeviceArgs) IsValid() bool {
+	return len(d.id) > 0 || len(d.name) > 0
 }
 
 // NewDevicesCommand returns the base 'device' command.
@@ -132,7 +135,7 @@ func updateDevice(c *Command, ctx *Context) error {
 }
 
 func newGetDeviceCmd(ctx *Context) *Command {
-	data := new(deviceId)
+	data := new(baseDeviceArgs)
 
 	cmd := &Command{
 		Name:    "get",
@@ -142,21 +145,25 @@ func newGetDeviceCmd(ctx *Context) *Command {
 		Action:  getDevice,
 	}
 	flags := cmd.NewFlagSet("iobeam device get")
-	flags.StringVar(&data.id, "id", "", "Device ID to query (REQUIRED)")
+	flags.StringVar(&data.id, "id", "", "Device ID to get (this or -name is required)")
+	flags.StringVar(&data.name, "name", "", "Device name to get (this or -id is required)")
 	flags.Uint64Var(&data.projectId, "projectId", ctx.Profile.ActiveProject,
-		"Project ID to get devices from (if omitted, defaults to active project)")
+		"Project ID to get devices from (defaults to active project)")
 
 	return cmd
 }
 
 func getDevice(c *Command, ctx *Context) error {
-	data := c.Data.(*deviceId)
-	path := c.ApiPath + "/" + data.id
+	data := c.Data.(*baseDeviceArgs)
+	var req *client.Request
+	if len(data.id) > 0 {
+		req = ctx.Client.Get(c.ApiPath + "/" + data.id)
+	} else {
+		req = ctx.Client.Get(c.ApiPath).Param("name", data.name)
+	}
 
 	device := new(deviceData)
-	_, err := ctx.Client.
-		Get(path).
-		Expect(200).
+	_, err := req.Expect(200).
 		ProjectToken(ctx.Profile, data.projectId).
 		ResponseBody(device).
 		ResponseBodyHandler(func(body interface{}) error {
@@ -289,7 +296,7 @@ func listDevices(c *Command, ctx *Context) error {
 }
 
 func newDeleteDeviceCmd(ctx *Context) *Command {
-	data := new(deviceId)
+	data := new(baseDeviceArgs)
 
 	cmd := &Command{
 		Name:    "delete",
@@ -306,7 +313,7 @@ func newDeleteDeviceCmd(ctx *Context) *Command {
 }
 
 func deleteDevice(c *Command, ctx *Context) error {
-	data := c.Data.(*deviceId)
+	data := c.Data.(*baseDeviceArgs)
 	path := c.ApiPath + "/" + data.id
 	_, err := ctx.Client.
 		Delete(path).
