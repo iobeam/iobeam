@@ -17,6 +17,7 @@ import (
 // see time.Parse docs for why this is the case
 const (
 	tokenTimeForm    = "2006-01-02 15:04:05 -0700"
+	contentTypeOctet = "application/octet-stream"
 	contentTypeJson  = "application/json"
 	contentTypePlain = "text/plain"
 )
@@ -38,6 +39,7 @@ type Request struct {
 	method             string
 	headers            http.Header
 	body               interface{}
+	bodyStream         io.Reader
 	responseBody       interface{}
 	handler            ResponseBodyHandler
 	parameters         url.Values
@@ -108,6 +110,14 @@ func (r *Request) ParamUint64(name string, value uint64) *Request {
 func (r *Request) Body(content interface{}) *Request {
 	r.headers.Add("Content-Type", contentTypeJson)
 	r.body = content
+	return r
+}
+
+// BodyStream sets the stream to use for HTTP body of the *Request.
+// Content is assumed to be an octet-stream. It returns the *Request so it can be chained.
+func (r *Request) BodyStream(stream io.Reader) *Request {
+	r.headers.Add("Content-Type", contentTypeOctet)
+	r.bodyStream = stream
 	return r
 }
 
@@ -211,6 +221,8 @@ func (r *Request) Execute() (*Response, error) {
 			return nil, err
 		}
 		reader = bytes.NewReader(body)
+	} else if r.bodyStream != nil {
+		reader = r.bodyStream
 	}
 
 	req, err := http.NewRequest(r.method,
