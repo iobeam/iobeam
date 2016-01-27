@@ -15,7 +15,11 @@ import (
 )
 
 // see time.Parse docs for why this is the case
-const tokenTimeForm = "2006-01-02 15:04:05 -0700"
+const (
+	tokenTimeForm    = "2006-01-02 15:04:05 -0700"
+	contentTypeJson  = "application/json"
+	contentTypePlain = "text/plain"
+)
 
 type basicAuth struct {
 	username string
@@ -102,7 +106,7 @@ func (r *Request) ParamUint64(name string, value uint64) *Request {
 // Body sets the HTTP body of the *Request. It assumes the content can be
 // serialized to JSON. It returns the *Request so it can be chained.
 func (r *Request) Body(content interface{}) *Request {
-	r.headers.Add("Content-Type", "application/json")
+	r.headers.Add("Content-Type", contentTypeJson)
 	r.body = content
 	return r
 }
@@ -230,7 +234,7 @@ func (r *Request) Execute() (*Response, error) {
 	httpRsp, err := r.client.httpClient.Do(req)
 
 	rsp := NewResponse(httpRsp)
-	contentType := "application/json"
+	contentType := contentTypeJson
 	if len(httpRsp.Header["Content-Type"]) > 0 {
 		contentType = httpRsp.Header["Content-Type"][0]
 	}
@@ -242,13 +246,13 @@ func (r *Request) Execute() (*Response, error) {
 	isJson := false
 	isPlain := false
 	if len(contentTypeArgs) == 1 {
-		isJson = caseInsensitiveEqual(contentTypeArgs[0], "application/json")
-		isPlain = caseInsensitiveEqual(contentTypeArgs[0], "text/plain")
+		isJson = caseInsensitiveEqual(contentTypeArgs[0], contentTypeJson)
+		isPlain = caseInsensitiveEqual(contentTypeArgs[0], contentTypePlain)
 	} else if len(contentTypeArgs) == 2 {
 		isUtf8 := caseInsensitiveEqual(contentTypeArgs[1], "charset=utf-8")
 		if isUtf8 {
-			isJson = caseInsensitiveEqual(contentTypeArgs[0], "application/json")
-			isPlain = caseInsensitiveEqual(contentTypeArgs[0], "text/plain")
+			isJson = caseInsensitiveEqual(contentTypeArgs[0], contentTypeJson)
+			isPlain = caseInsensitiveEqual(contentTypeArgs[0], contentTypePlain)
 		}
 	}
 
