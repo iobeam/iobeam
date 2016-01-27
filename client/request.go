@@ -99,9 +99,10 @@ func (r *Request) ParamUint64(name string, value uint64) *Request {
 	return r
 }
 
-// Body sets the HTTP body of the *Request. It returns the *Request so
-// it can be chained.
+// Body sets the HTTP body of the *Request. It assumes the content can be
+// serialized to JSON. It returns the *Request so it can be chained.
 func (r *Request) Body(content interface{}) *Request {
+	r.headers.Add("Content-Type", "application/json")
 	r.body = content
 	return r
 }
@@ -218,10 +219,6 @@ func (r *Request) Execute() (*Response, error) {
 	req.URL.RawQuery = r.parameters.Encode()
 	req.Header = r.headers
 	req.Header.Add("User-Agent", r.client.userAgent)
-
-	if r.body != nil {
-		req.Header.Add("Content-Type", "application/json")
-	}
 
 	// If basic auth nor a token is set, we'll try anyway and then fail as unauthorized.
 	if r.auth != nil {
