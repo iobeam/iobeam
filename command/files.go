@@ -1,7 +1,10 @@
 package command
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -27,11 +30,10 @@ func NewFilesCommand(ctx *Context) *Command {
 type uploadFileArgs struct {
 	projectId uint64
 	path      string
-	checksum  string
 }
 
 func (a *uploadFileArgs) IsValid() bool {
-	return len(a.path) > 0 && len(a.checksum) > 0 && a.projectId > 0
+	return len(a.path) > 0 && a.projectId > 0
 }
 
 func newUploadFileCmd(ctx *Context) *Command {
@@ -47,9 +49,25 @@ func newUploadFileCmd(ctx *Context) *Command {
 	flags := cmd.NewFlagSet(flagSetFile + " upload")
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "The ID of the project to upload the file to (defaults to active project).")
 	flags.StringVar(&args.path, "path", "", "Path to file to upload.")
-	flags.StringVar(&args.checksum, "checksum", "", "SHA-256 checksum, as a hex digest, of the file.")
 
 	return cmd
+}
+
+func getFileSha256HashString(path string) (string, error) {
+
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	hash := sha256.New()
+
+	if _, err := io.Copy(hash, f); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func uploadFile(c *Command, ctx *Context) error {
@@ -59,12 +77,18 @@ func uploadFile(c *Command, ctx *Context) error {
 		return err
 	}
 	defer f.Close()
+	calculatedChecksum, err := getFileSha256HashString(args.path)
+
+	if err != nil {
+		fmt.Printf("Error calculating checksum:\n")
+		return err
+	}
 
 	_, err = ctx.Client.
 		Post(c.ApiPath+"/"+filepath.Base(args.path)).
 		Expect(201).
 		ProjectToken(ctx.Profile, args.projectId).
-		Param("checksum", args.checksum).
+		Param("checksum", calculatedChecksum).
 		Param("checksum_alg", "SHA-256").
 		BodyStream(f).
 		Execute()
