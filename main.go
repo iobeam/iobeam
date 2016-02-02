@@ -59,6 +59,7 @@ func main() {
 		Name:  os.Args[0],
 		Usage: "iobeam Command-Line Interface (CLI)\nUse the -help flag for usage flags and syntax.",
 		SubCommands: command.Mux{
+			"app":     command.NewAppsCommand(ctx),
 			"device":  command.NewDevicesCommand(ctx),
 			"file":    command.NewFilesCommand(ctx),
 			"import":  command.NewImportCommand(ctx),

@@ -9,7 +9,10 @@ import (
 	"path/filepath"
 )
 
-const flagSetFile = "iobeam file"
+const (
+	flagSetFile     = "iobeam file"
+	baseApiPathFile = "/v1/files"
+)
 
 // NewFilesCommand returns the base 'device' command.
 func NewFilesCommand(ctx *Context) *Command {
@@ -41,7 +44,7 @@ func newUploadFileCmd(ctx *Context) *Command {
 
 	cmd := &Command{
 		Name:    "upload",
-		ApiPath: "/v1/files",
+		ApiPath: baseApiPathFile,
 		Usage:   "Upload a file to iobeam.",
 		Data:    args,
 		Action:  uploadFile,
@@ -72,20 +75,28 @@ func getFileSha256HashString(path string) (string, error) {
 
 func uploadFile(c *Command, ctx *Context) error {
 	args := c.Data.(*uploadFileArgs)
+	_, err := _uploadFile(ctx, args)
+	return err
+}
+
+// _uploadFile does the actual file uploading and returns the checksum
+// of the file or an error
+func _uploadFile(ctx *Context, args *uploadFileArgs) (string, error) {
 	f, err := os.Open(args.path)
 	if err != nil {
-		return err
+		fmt.Println("Could not open file for upload:")
+		return "", err
 	}
 	defer f.Close()
 	calculatedChecksum, err := getFileSha256HashString(args.path)
 
 	if err != nil {
 		fmt.Printf("Error calculating checksum:\n")
-		return err
+		return "", err
 	}
 
 	_, err = ctx.Client.
-		Post(c.ApiPath+"/"+filepath.Base(args.path)).
+		Post(baseApiPathFile+"/"+filepath.Base(args.path)).
 		Expect(201).
 		ProjectToken(ctx.Profile, args.projectId).
 		Param("checksum", calculatedChecksum).
@@ -95,8 +106,9 @@ func uploadFile(c *Command, ctx *Context) error {
 
 	if err == nil {
 		fmt.Printf("File '%s' uploaded successfully.\n", args.path)
+		return calculatedChecksum, nil
 	}
-	return err
+	return "", err
 }
 
 type deleteFileArgs struct {
@@ -114,7 +126,7 @@ func newDeleteFileCmd(ctx *Context) *Command {
 
 	cmd := &Command{
 		Name:    "delete",
-		ApiPath: "/v1/files",
+		ApiPath: baseApiPathFile,
 		Usage:   "Delete a file from iobeam.",
 		Data:    args,
 		Action:  deleteFile,
@@ -155,7 +167,7 @@ func newListFilesCmd(ctx *Context) *Command {
 
 	cmd := &Command{
 		Name:    "list",
-		ApiPath: "/v1/files",
+		ApiPath: baseApiPathFile,
 		Usage:   "List files for a project.",
 		Data:    args,
 		Action:  listFiles,
@@ -171,6 +183,10 @@ type checksum struct {
 	Sum       string `json:"sum"`
 }
 
+func (c *checksum) Print() {
+	fmt.Printf("Checksum: %s (%s)\n", c.Sum, c.Algorithm)
+}
+
 type fileInfo struct {
 	Name     string   `json:"file_name"`
 	Created  string   `json:"created"`
@@ -180,7 +196,7 @@ type fileInfo struct {
 func (i *fileInfo) Print() {
 	fmt.Printf("Name    : %s\n", i.Name)
 	fmt.Printf("Created : %s\n", i.Created)
-	fmt.Printf("Checksum: %s (%s)\n", i.Checksum.Sum, i.Checksum.Algorithm)
+	i.Checksum.Print()
 }
 
 func listFiles(c *Command, ctx *Context) error {
