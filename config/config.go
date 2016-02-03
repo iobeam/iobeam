@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/user"
+
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 type iobeamConfig struct {
@@ -37,14 +38,14 @@ func InitConfig() (*iobeamConfig, error) {
 }
 
 func getDotDir() string {
-	user, err := user.Current()
+	homeDir, err := homedir.Dir()
 
 	if err != nil {
 		// We cannot gracefully use the temp directory with profiles.
 		panic(err)
 	}
 
-	return user.HomeDir + pathSeparator + dotDirName
+	return homeDir + pathSeparator + dotDirName
 }
 
 func defaultConfigPath() string {
