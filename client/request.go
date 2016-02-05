@@ -232,6 +232,9 @@ func (r *Request) Execute() (*Response, error) {
 	}
 
 	httpRsp, err := r.client.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
 
 	rsp := NewResponse(httpRsp)
 	contentType := contentTypeJson
@@ -258,10 +261,6 @@ func (r *Request) Execute() (*Response, error) {
 
 	if !isJson && !isPlain {
 		return rsp, errors.New("Unknown content-type: " + contentType)
-	}
-
-	if err != nil {
-		return rsp, err
 	}
 
 	// Check if we got the status code we expected
