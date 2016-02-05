@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"path/filepath"
 	"strconv"
 
 	"github.com/iobeam/iobeam/client"
@@ -130,7 +131,7 @@ func launchApp(c *Command, ctx *Context) error {
 		RequestedStatus: appStatusRunning,
 		Bundle: bundle{
 			Type: "JAR",
-			URI:  "file://" + args.name,
+			URI:  "file://" + filepath.Base(args.path),
 			Checksum: checksum2{
 				Sum:       digest,
 				Algorithm: "SHA256",
