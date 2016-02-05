@@ -25,7 +25,7 @@ Then,
 
     $ go get github.com/iobeam/iobeam
 
-Note: A dot directory, `.iobeam`, is created under your user's home directory to
+Note: On first run, a dot directory, `.iobeam`, is created in your home directory to
 store state such as user and project tokens which authenticate you to the iobeam cloud.
 
 
