@@ -13,6 +13,7 @@ const (
 	baseApiPathApp = "/v1/apps"
 	flagSetApp     = "iobeam app"
 	cmdGet         = "get"
+	cmdDelete      = "delete"
 	cmdLaunch      = "deploy"
 	cmdList        = "list"
 	cmdStart       = "start"
@@ -79,6 +80,7 @@ func NewAppsCommand(ctx *Context) *Command {
 		Usage: "Commands for managing apps.",
 		SubCommands: Mux{
 			cmdLaunch: newLaunchAppCmd(ctx),
+			cmdDelete: newDeleteAppCmd(ctx),
 			cmdGet:    newGetAppCmd(ctx),
 			cmdList:   newListAppsCmd(ctx),
 			cmdStart:  newStartAppCmd(ctx),
@@ -224,6 +226,47 @@ func _getApp(ctx *Context, args *baseAppArgs) (*appData, error) {
 	}).Execute()
 
 	return app, err
+}
+
+// deleteAppArgs are the arguments for the 'delete' subcommand
+type deleteAppArgs struct {
+	baseAppArgs
+}
+
+func (a *deleteAppArgs) IsValid() bool {
+	return a.baseAppArgs.IsValid()
+}
+
+func newDeleteAppCmd(ctx *Context) *Command {
+	args := new(deleteAppArgs)
+
+	cmd := &Command{
+		Name:    cmdDelete,
+		ApiPath: baseApiPathApp,
+		Usage:   "Delete an app.",
+		Data:    args,
+		Action:  deleteApp,
+	}
+	flags := cmd.newFlagSetApp(cmdDelete)
+	flags.Uint64Var(&args.id, "id", 0, "App ID to delete (REQUIRED)")
+	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject,
+		"Project ID to delete from (defaults to active project)")
+
+	return cmd
+}
+
+func deleteApp(c *Command, ctx *Context) error {
+	args := c.Data.(*deleteAppArgs)
+	req := ctx.Client.Delete(baseApiPathApp + "/" + strconv.FormatUint(args.id, 10))
+
+	_, err := req.Expect(204).
+		ProjectToken(ctx.Profile, args.projectId).Execute()
+
+	if err == nil {
+		fmt.Printf("App %d sucessfully deleted.\n", args.id)
+	}
+
+	return err
 }
 
 // listAppsArgs are the arguments for the 'list' sucommand
