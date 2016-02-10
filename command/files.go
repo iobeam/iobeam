@@ -179,7 +179,7 @@ func newListFilesCmd(ctx *Context) *Command {
 }
 
 type checksum struct {
-	Algorithm string `json:"algorithm"`
+	Algorithm string `json:"alg"`
 	Sum       string `json:"sum"`
 }
 

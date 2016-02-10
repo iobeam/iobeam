@@ -27,29 +27,24 @@ func (c *Command) newFlagSetApp(cmd string) *flag.FlagSet {
 	return c.NewFlagSet(flagSetApp + " " + cmd)
 }
 
-// TODO(rrk) remove once consensus on alg vs algorithm is reached
-type checksum2 struct {
-	Algorithm string `json:"alg"`
-	Sum       string `json:"sum"`
-}
-
 // bundle describes an app's file bundle
 type bundle struct {
-	Checksum checksum2 `json:"checksum"`
-	Type     string    `json:"type"`
-	URI      string    `json:"uri"`
+	Checksum checksum `json:"checksum"`
+	Type     string   `json:"type"`
+	URI      string   `json:"uri"`
 }
 
 func (b *bundle) Print() {
 	fmt.Printf("URI     : %s\n", b.URI)
 	fmt.Printf("Type    : %s\n", b.Type)
-	//b.Checksum.Print()
+	b.Checksum.Print()
+	fmt.Println()
 }
 
 // appData defines the JSON resource of an iobeam app
 type appData struct {
 	AppId           uint64 `json:"app_id,omitempty"`
-	AppName         string `json:"name"`
+	AppName         string `json:"app_name"`
 	ProjectId       uint64 `json:"project_id"`
 	Bundle          bundle `json:"bundle"`
 	Created         string `json:"created,omitempty"`
@@ -134,7 +129,7 @@ func launchApp(c *Command, ctx *Context) error {
 		Bundle: bundle{
 			Type: "JAR",
 			URI:  "file://" + filepath.Base(args.path),
-			Checksum: checksum2{
+			Checksum: checksum{
 				Sum:       digest,
 				Algorithm: "SHA256",
 			},
