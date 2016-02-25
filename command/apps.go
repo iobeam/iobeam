@@ -14,7 +14,7 @@ const (
 	flagSetApp     = "iobeam app"
 	cmdGet         = "get"
 	cmdDelete      = "delete"
-	cmdLaunch      = "deploy"
+	cmdLaunch      = "create"
 	cmdList        = "list"
 	cmdStart       = "start"
 	cmdStop        = "stop"
@@ -105,7 +105,7 @@ func newLaunchAppCmd(ctx *Context) *Command {
 	cmd := &Command{
 		Name:    cmdLaunch,
 		ApiPath: baseApiPathApp,
-		Usage:   "Launch a Spark app on iobeam.",
+		Usage:   "Create (and launch) a Spark app.",
 		Data:    args,
 		Action:  launchApp,
 	}
