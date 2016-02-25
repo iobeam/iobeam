@@ -18,6 +18,7 @@ const (
 	cmdList        = "list"
 	cmdStart       = "start"
 	cmdStop        = "stop"
+	cmdUpdate      = "update"
 
 	appStatusRunning = "RUNNING"
 	appStatusStopped = "STOPPED"
@@ -80,6 +81,7 @@ func NewAppsCommand(ctx *Context) *Command {
 			cmdList:   newListAppsCmd(ctx),
 			cmdStart:  newStartAppCmd(ctx),
 			cmdStop:   newStopAppCmd(ctx),
+			cmdUpdate: newUpdateAppCmd(ctx),
 		},
 	}
 	cmd.NewFlagSet(flagSetApp)
@@ -152,6 +154,84 @@ func launchApp(c *Command, ctx *Context) error {
 
 		return nil
 	}).Execute()
+
+	return err
+}
+
+// updateAppArgs are the arguments for the 'update' subcommand
+type updateAppArgs struct {
+	launchAppArgs
+	id uint64
+}
+
+func (a *updateAppArgs) IsValid() bool {
+	return a.id > 0 && (len(a.name) > 0 || len(a.path) > 0)
+}
+
+func newUpdateAppCmd(ctx *Context) *Command {
+	args := new(updateAppArgs)
+
+	cmd := &Command{
+		Name:    cmdUpdate,
+		ApiPath: baseApiPathApp,
+		Usage:   "Update an app, including replacing the JAR.",
+		Data:    args,
+		Action:  updateApp,
+	}
+	flags := cmd.newFlagSetApp(cmdUpdate)
+	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID (defaults to active project).")
+	flags.Uint64Var(&args.id, "id", 0, "App ID to update. (REQUIRED)")
+	flags.StringVar(&args.name, "name", "", "Name of the app.")
+	flags.StringVar(&args.path, "path", "", "Path to app to upload.")
+
+	return cmd
+}
+
+func updateApp(c *Command, ctx *Context) error {
+	args := c.Data.(*updateAppArgs)
+
+	// Get app info to do PUT
+	app, err := _getApp(ctx, &baseAppArgs{
+		id:        args.id,
+		projectId: args.projectId,
+	})
+	if err != nil {
+		fmt.Println("errrrrr")
+		return err
+	}
+
+	if len(args.name) > 0 {
+		app.AppName = args.name
+	}
+
+	if len(args.path) > 0 {
+		digest, err := _uploadFile(ctx, &args.uploadFileArgs)
+		if err != nil {
+			return err
+		}
+		app.Bundle = bundle{
+			Type: "JAR",
+			URI:  "file://" + filepath.Base(args.path),
+			Checksum: checksum{
+				Sum:       digest,
+				Algorithm: "SHA256",
+			},
+		}
+	}
+
+	rsp, err := ctx.Client.
+		Put(baseApiPathApp+"/"+strconv.FormatUint(args.id, 10)).
+		Expect(200).
+		ProjectToken(ctx.Profile, args.projectId).
+		Body(app).
+		Execute()
+
+	if err == nil {
+		fmt.Println("App successfully updated.")
+	} else if rsp.Http().StatusCode == 204 {
+		fmt.Println("App not modified.")
+		return nil
+	}
 
 	return err
 }
@@ -375,9 +455,9 @@ func _updateAppStatus(ctx *Context, args *baseAppArgs, status string) error {
 
 	var req *client.Request
 	if args.id > 0 {
-		req = ctx.Client.Patch(baseApiPathApp + "/" + strconv.FormatUint(args.id, 10))
+		req = ctx.Client.Put(baseApiPathApp + "/" + strconv.FormatUint(args.id, 10))
 	} else {
-		req = ctx.Client.Patch(baseApiPathApp).Param("name", args.name)
+		req = ctx.Client.Put(baseApiPathApp).Param("name", args.name)
 	}
 
 	app.RequestedStatus = status
