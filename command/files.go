@@ -96,7 +96,7 @@ func _uploadFile(ctx *Context, args *uploadFileArgs) (string, error) {
 	}
 
 	_, err = ctx.Client.
-		Post(baseApiPathFile+"/"+filepath.Base(args.path)).
+		Put(baseApiPathFile+"/"+filepath.Base(args.path)).
 		Expect(201).
 		ProjectToken(ctx.Profile, args.projectId).
 		Param("checksum", calculatedChecksum).
