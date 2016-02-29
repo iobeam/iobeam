@@ -13,6 +13,23 @@ import (
 	"github.com/iobeam/iobeam/config"
 )
 
+// setFlags is used to call a flag multiple times to create lists or maps of
+// flag values.
+type setFlags map[string]struct{}
+
+func (i *setFlags) String() string {
+	return ""
+}
+
+func (i *setFlags) Set(value string) error {
+	if *i == nil {
+		*i = map[string]struct{}{}
+	}
+	var empty struct{}
+	(*i)[value] = empty
+	return nil
+}
+
 // Data is an interface for data that is posted to API, generated from command-line input.
 type Data interface {
 	IsValid() bool

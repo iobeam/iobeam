@@ -2,6 +2,72 @@ package command
 
 import "testing"
 
+func TestTriggerTestArgsValidity(t *testing.T) {
+	cases := []struct {
+		desc string
+		in   *triggerTestArgs
+		want bool
+	}{
+		{
+			desc: "a valid triggerTestArgs object",
+			in: &triggerTestArgs{
+				projectId:   1,
+				triggerName: "trigger",
+				parameters: setFlags{
+					"key,value": {},
+				},
+			},
+			want: true,
+		},
+		{
+			desc: "a valid triggerTestArgs object w/ no parameters",
+			in: &triggerTestArgs{
+				projectId:   1,
+				triggerName: "trigger",
+			},
+			want: true,
+		},
+		{
+			desc: "invalid project id (< 1)",
+			in: &triggerTestArgs{
+				projectId:   0,
+				triggerName: "trigger",
+				parameters: setFlags{
+					"key,value": {},
+				},
+			},
+			want: false,
+		},
+		{
+			desc: "invalid trigger name (none)",
+			in: &triggerTestArgs{
+				projectId: 1,
+				parameters: setFlags{
+					"key,value": {},
+				},
+			},
+			want: false,
+		},
+		{
+			desc: "invalid parameter (not comma separated)",
+			in: &triggerTestArgs{
+				projectId:   1,
+				triggerName: "trigger",
+				parameters: setFlags{
+					"key value": {},
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, c := range cases {
+		if got := c.in.IsValid(); got != c.want {
+			t.Errorf("case '%s' failed", c.desc)
+		}
+	}
+}
+
 func TestTriggerDataValidity(t *testing.T) {
 	cases := []struct {
 		in   *triggerData

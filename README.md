@@ -94,6 +94,30 @@ The REST API also supports richer queries with operators (e.g., `mean`, `min`, `
 ranges, time-series rollups, and more. Please refer to our [Exports API](http://docs.iobeam.com/api/exports/)
 for more information.
 
+### Testing triggers ###
+
+If you want to make sure you have set up a trigger correctly with iobeam,
+you can test it by firing a test event. This allows you to verify your
+trigger is working correctly independent of any application logic. For
+the simplest triggers that don't use parameters:
+
+    $ iobeam trigger test -name=<trigger_name>
+
+This will cause the trigger to fire, e.g., POST to the endpoint you set up when
+you made the trigger.
+
+If your trigger uses parameters in the payload, all of them must be specified
+using the `-param` flag in the form of `parameter_key,parameter_value`. So
+if you have a paramter called `name` and you want to test it with a value of `Bob`:
+
+    $ iobeam trigger test -name=<trigger_name> -param="name,Bob"
+
+
+Multiple parameters can also be specified:
+
+    $ iobeam trigger test -name=<trigger_name> -param="name,Bob" -param="age,20"
+
+
 ### Creating additional project tokens ###
 
 When you create a project, the token you are given has admin privileges, which you will not want to

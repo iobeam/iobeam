@@ -35,21 +35,6 @@ var ops = []string{opSum, opCount, opMin, opMax, opMean}
 var timeFmts = []string{timeFmtSec, timeFmtMsec, timeFmtUsec, timeFmtStruct}
 var outputs = []string{outputJson, outputCsv}
 
-type setFlags map[string]struct{}
-
-func (i *setFlags) String() string {
-	return fmt.Sprintf("%v", *i)
-}
-
-func (i *setFlags) Set(value string) error {
-	if *i == nil {
-		*i = map[string]struct{}{}
-	}
-	var empty struct{}
-	(*i)[value] = empty
-	return nil
-}
-
 type exportData struct {
 	projectId uint64
 	deviceId  string
