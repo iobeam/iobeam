@@ -2,19 +2,9 @@ package command
 
 import "testing"
 
-type appArgsTestCases dataTestCase
-
-func runAppArgsTestCase(t *testing.T, cases []appArgsTestCases) {
-	for _, c := range cases {
-		if got := c.in.IsValid(); got != c.want {
-			t.Errorf("case '%s' failed", c.desc)
-		}
-	}
-}
-
 // TestLaunchAppArgsIsValid tests validity cases for launchAppArgs
 func TestLaunchAppArgsIsValid(t *testing.T) {
-	cases := []appArgsTestCases{
+	cases := []dataTestCase{
 		{
 			desc: "a valid launchAppArgs object",
 			in: &launchAppArgs{
@@ -60,12 +50,12 @@ func TestLaunchAppArgsIsValid(t *testing.T) {
 			want: false,
 		},
 	}
-	runAppArgsTestCase(t, cases)
+	runDataTestCase(t, cases)
 }
 
 // TestBaseAppArgsIsValid tests validity cases for baseAppArgs
 func TestBaseAppArgsIsValid(t *testing.T) {
-	cases := []appArgsTestCases{
+	cases := []dataTestCase{
 		{
 			desc: "a valid baseAppArgs object w/ both id & name",
 			in: &baseAppArgs{
@@ -107,5 +97,5 @@ func TestBaseAppArgsIsValid(t *testing.T) {
 			want: false,
 		},
 	}
-	runAppArgsTestCase(t, cases)
+	runDataTestCase(t, cases)
 }
