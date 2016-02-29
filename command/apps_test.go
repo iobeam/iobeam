@@ -1,0 +1,115 @@
+package command
+
+import "testing"
+
+type appArgsTestCases struct {
+	desc string
+	in   Data
+	want bool
+}
+
+func runAppArgsTestCass(t *testing.T, cases []appArgsTestCases) {
+	for _, c := range cases {
+		if got := c.in.IsValid(); got != c.want {
+			t.Errorf("case '%s' failed", c.desc)
+		}
+	}
+}
+
+// TestLaunchAppArgsIsValid tests validity cases for launchAppArgs
+func TestBAppArgsIsValid(t *testing.T) {
+	cases := []appArgsTestCases{
+		{
+			desc: "a valid launchAppArgs object",
+			in: &launchAppArgs{
+				uploadFileArgs: uploadFileArgs{
+					projectId: 1,
+					path:      "test/path.out",
+				},
+				name: "test-app",
+			},
+			want: true,
+		},
+		{
+			desc: "invalid project id (< 1)",
+			in: &launchAppArgs{
+				uploadFileArgs: uploadFileArgs{
+					projectId: 0,
+					path:      "test/path.out",
+				},
+				name: "test-app",
+			},
+			want: false,
+		},
+		{
+			desc: "invalid path given (none)",
+			in: &launchAppArgs{
+				uploadFileArgs: uploadFileArgs{
+					projectId: 1,
+					path:      "",
+				},
+				name: "test-app",
+			},
+			want: false,
+		},
+		{
+			desc: "invalid name given (none)",
+			in: &launchAppArgs{
+				uploadFileArgs: uploadFileArgs{
+					projectId: 1,
+					path:      "test/path.out",
+				},
+				name: "",
+			},
+			want: false,
+		},
+	}
+	runAppArgsTestCass(t, cases)
+}
+
+// TestBaseAppArgsIsValid tests validity cases for baseAppArgs
+func TestBaseAppArgsIsValid(t *testing.T) {
+	cases := []appArgsTestCases{
+		{
+			desc: "a valid baseAppArgs object w/ both id & name",
+			in: &baseAppArgs{
+				projectId: 1,
+				name:      "test-app",
+				id:        1,
+			},
+			want: true,
+		},
+		{
+			desc: "a valid baseAppArgs object w/ name",
+			in: &baseAppArgs{
+				projectId: 1,
+				name:      "test-app",
+			},
+			want: true,
+		},
+		{
+			desc: "a valid baseAppArgs object w/ id",
+			in: &baseAppArgs{
+				projectId: 1,
+				id:        1,
+			},
+			want: true,
+		},
+		{
+			desc: "invalid, project id < 1",
+			in: &baseAppArgs{
+				projectId: 0,
+				id:        1,
+			},
+			want: false,
+		},
+		{
+			desc: "invalid, no id or name",
+			in: &baseAppArgs{
+				projectId: 1,
+			},
+			want: false,
+		},
+	}
+	runAppArgsTestCass(t, cases)
+}
