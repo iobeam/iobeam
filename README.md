@@ -91,7 +91,7 @@ the next section.*
     $ iobeam query -projectId=<project_id> -series="<series_name>" -last="1d"
 
 The REST API also supports richer queries with operators (e.g., `mean`, `min`, `max`), date / value
-ranges, time-series rollups, and more. Please refer to our [Exports API](http://docs.iobeam.com/exports/)
+ranges, time-series rollups, and more. Please refer to our [Exports API](http://docs.iobeam.com/api/exports/)
 for more information.
 
 ### Creating additional project tokens ###
