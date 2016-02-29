@@ -3,11 +3,7 @@ package command
 import "testing"
 
 func TestTriggerTestArgsValidity(t *testing.T) {
-	cases := []struct {
-		desc string
-		in   *triggerTestArgs
-		want bool
-	}{
+	cases := []dataTestCase{
 		{
 			desc: "a valid triggerTestArgs object",
 			in: &triggerTestArgs{
@@ -28,7 +24,7 @@ func TestTriggerTestArgsValidity(t *testing.T) {
 			want: true,
 		},
 		{
-			desc: "invalid project id (< 1)",
+			desc: testDescInvalidProjectId,
 			in: &triggerTestArgs{
 				projectId:   0,
 				triggerName: "trigger",
@@ -61,19 +57,13 @@ func TestTriggerTestArgsValidity(t *testing.T) {
 		},
 	}
 
-	for _, c := range cases {
-		if got := c.in.IsValid(); got != c.want {
-			t.Errorf("case '%s' failed", c.desc)
-		}
-	}
+	runDataTestCase(t, cases)
 }
 
 func TestTriggerDataValidity(t *testing.T) {
-	cases := []struct {
-		in   *triggerData
-		want bool
-	}{
+	cases := []dataTestCase{
 		{
+			desc: testDescInvalidProjectId,
 			in: &triggerData{
 				TriggerId:   0,
 				ProjectId:   0, // must be > 0
@@ -83,15 +73,16 @@ func TestTriggerDataValidity(t *testing.T) {
 			want: false,
 		},
 		{
+			desc: "invalid trigger name (none)",
 			in: &triggerData{
-				TriggerId:   0,
-				ProjectId:   1,
-				TriggerName: "", // must have len > 0
-				DataExpiry:  0,
+				TriggerId:  0,
+				ProjectId:  1,
+				DataExpiry: 0,
 			},
 			want: false,
 		},
 		{
+			desc: "valid triggerData object",
 			in: &triggerData{
 				TriggerId:   0,
 				ProjectId:   1,
@@ -102,11 +93,7 @@ func TestTriggerDataValidity(t *testing.T) {
 		},
 	}
 
-	for _, c := range cases {
-		if got := c.in.isTriggerMetaValid(); got != c.want {
-			t.Errorf("IsValid(%q) == %q, want %q", c.in, got, c.want)
-		}
-	}
+	runDataTestCase(t, cases)
 }
 
 func TestHTTPDataValidity(t *testing.T) {

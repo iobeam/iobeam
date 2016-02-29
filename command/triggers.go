@@ -46,7 +46,7 @@ type triggerData struct {
 	DataExpiry  uint64 `json:"data_expiry",omitempty`
 }
 
-func (d *triggerData) isTriggerMetaValid() bool {
+func (d *triggerData) IsValid() bool {
 	return d.ProjectId > 0 && len(d.TriggerName) > 0 && d.DataExpiry >= 0
 }
 
@@ -352,7 +352,7 @@ type httpConfigArgs struct {
 }
 
 func (c *httpConfigArgs) IsValid() bool {
-	return c.isTriggerMetaValid() && c.minDelay >= 0 && c.data.isHTTPDataValid()
+	return c.triggerData.IsValid() && c.minDelay >= 0 && c.data.isHTTPDataValid()
 }
 
 func newHTTPTriggerCommand(ctx *Context) *Command {
@@ -414,7 +414,7 @@ type mqttConfigArgs struct {
 }
 
 func (c *mqttConfigArgs) IsValid() bool {
-	return c.isTriggerMetaValid() && c.minDelay >= 0 && c.data.isMQTTDataValid()
+	return c.triggerData.IsValid() && c.minDelay >= 0 && c.data.isMQTTDataValid()
 }
 
 func newMQTTTriggerCommand(ctx *Context) *Command {
@@ -477,7 +477,7 @@ type smsConfigArgs struct {
 }
 
 func (c *smsConfigArgs) IsValid() bool {
-	return c.isTriggerMetaValid() && c.minDelay >= 0 && c.data.isSMSDataValid()
+	return c.triggerData.IsValid() && c.minDelay >= 0 && c.data.isSMSDataValid()
 }
 
 func newSMSTriggerCommand(ctx *Context) *Command {

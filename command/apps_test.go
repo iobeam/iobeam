@@ -2,13 +2,9 @@ package command
 
 import "testing"
 
-type appArgsTestCases struct {
-	desc string
-	in   Data
-	want bool
-}
+type appArgsTestCases dataTestCase
 
-func runAppArgsTestCass(t *testing.T, cases []appArgsTestCases) {
+func runAppArgsTestCase(t *testing.T, cases []appArgsTestCases) {
 	for _, c := range cases {
 		if got := c.in.IsValid(); got != c.want {
 			t.Errorf("case '%s' failed", c.desc)
@@ -17,7 +13,7 @@ func runAppArgsTestCass(t *testing.T, cases []appArgsTestCases) {
 }
 
 // TestLaunchAppArgsIsValid tests validity cases for launchAppArgs
-func TestBAppArgsIsValid(t *testing.T) {
+func TestLaunchAppArgsIsValid(t *testing.T) {
 	cases := []appArgsTestCases{
 		{
 			desc: "a valid launchAppArgs object",
@@ -31,7 +27,7 @@ func TestBAppArgsIsValid(t *testing.T) {
 			want: true,
 		},
 		{
-			desc: "invalid project id (< 1)",
+			desc: testDescInvalidProjectId,
 			in: &launchAppArgs{
 				uploadFileArgs: uploadFileArgs{
 					projectId: 0,
@@ -64,7 +60,7 @@ func TestBAppArgsIsValid(t *testing.T) {
 			want: false,
 		},
 	}
-	runAppArgsTestCass(t, cases)
+	runAppArgsTestCase(t, cases)
 }
 
 // TestBaseAppArgsIsValid tests validity cases for baseAppArgs
@@ -96,7 +92,7 @@ func TestBaseAppArgsIsValid(t *testing.T) {
 			want: true,
 		},
 		{
-			desc: "invalid, project id < 1",
+			desc: testDescInvalidProjectId,
 			in: &baseAppArgs{
 				projectId: 0,
 				id:        1,
@@ -111,5 +107,5 @@ func TestBaseAppArgsIsValid(t *testing.T) {
 			want: false,
 		},
 	}
-	runAppArgsTestCass(t, cases)
+	runAppArgsTestCase(t, cases)
 }
