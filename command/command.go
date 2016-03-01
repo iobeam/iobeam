@@ -154,3 +154,14 @@ func (c *Command) parseFlags(ctx *Context) {
 		ctx.Index += c.flags.NFlag()
 	}
 }
+
+// FIXME: allow non-echoing for passwords
+func promptStdIn(prompt string) (string, error) {
+	bio := bufio.NewReader(os.Stdin)
+	fmt.Printf(prompt)
+	line, _, err := bio.ReadLine()
+	if err != nil {
+		return "", err
+	}
+	return string(line), nil
+}

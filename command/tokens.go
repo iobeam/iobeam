@@ -1,9 +1,7 @@
 package command
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 
 	"github.com/iobeam/iobeam/client"
 )
@@ -37,25 +35,22 @@ func getUserToken(c *Command, ctx *Context) error {
 	t := c.Data.(*basicAuthData)
 
 	if len(t.username) == 0 {
-		bio := bufio.NewReader(os.Stdin)
-		fmt.Printf("Username/email: ")
-		line, _, err := bio.ReadLine()
+		resp, err := promptStdIn("Username/email: ")
 		if err != nil {
 			return err
 		}
-		t.username = string(line)
+		t.username = resp
 	}
-	// FIXME: do not echo old password
-	bio := bufio.NewReader(os.Stdin)
-	fmt.Printf("Password: ")
-	line, _, err := bio.ReadLine()
-	if err != nil {
-		return err
+	if len(t.password) == 0 {
+		resp, err := promptStdIn("Password: ")
+		if err != nil {
+			return err
+		}
+		t.password = resp
 	}
-	t.password = string(line)
 
 	var userId uint64
-	_, err = ctx.Client.
+	_, err := ctx.Client.
 		Get(c.ApiPath).
 		BasicAuth(t.username, t.password).
 		Expect(200).

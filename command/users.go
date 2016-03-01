@@ -1,9 +1,7 @@
 package command
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/iobeam/iobeam/client"
@@ -40,7 +38,7 @@ func (u *userData) IsValid() bool {
 	} else if u.isSearch {
 		return len(u.Username) > 0
 	} else { // create new user
-		return len(u.Email) > 0 && len(u.Password) > 0 && len(u.Invite) > 0
+		return len(u.Email) > 0 && len(u.Invite) > 0
 	}
 }
 
@@ -90,14 +88,15 @@ func newCreateOrUpdateUserCmd(update bool, name string, action Action) *Command 
 	flags := cmd.NewFlagSet("iobeam user " + name)
 	flags.StringVar(&user.Username, "username", "",
 		"Username associated with user")
-	flags.StringVar(&user.Password, "password", "", "The user's password"+
-		requiredArg(!update))
 	flags.StringVar(&user.Email, "email", "", "The user's email address"+
 		requiredArg(!update))
 	flags.StringVar(&user.FirstName, "firstname", "", "The user's first name")
 	flags.StringVar(&user.LastName, "lastname", "", "The user's last name")
 	flags.StringVar(&user.CompanyName, "company", "", "The user's company name")
 	flags.StringVar(&user.Url, "url", "", "The user's webpage")
+	if update { // User should interactively enter password
+		flags.StringVar(&user.Password, "password", "", "The user's password.")
+	}
 	if !update {
 		flags.StringVar(&user.Invite, "invite", "", "Invite code needed for closed beta"+
 			requiredArg(true))
@@ -122,7 +121,6 @@ func getCreateOrUpdateRequest(ctx *Context, path string, update bool) *client.Re
 }
 
 func updateUser(c *Command, ctx *Context) error {
-
 	u := c.Data.(*userData)
 
 	req := ctx.Client.
@@ -132,15 +130,12 @@ func updateUser(c *Command, ctx *Context) error {
 		Expect(200)
 
 	if len(u.Password) > 0 {
-		bio := bufio.NewReader(os.Stdin)
-		// FIXME: do not echo old password
-		fmt.Printf("Enter old password: ")
-		line, _, err := bio.ReadLine()
+		line, err := promptStdIn("Enter old password: ")
 
 		if err != nil {
 			return err
 		}
-		req.Param("old_password", string(line))
+		req.Param("old_password", line)
 	}
 
 	rsp, err := req.Execute()
@@ -156,8 +151,13 @@ func updateUser(c *Command, ctx *Context) error {
 }
 
 func createUser(c *Command, ctx *Context) error {
+	line, err := promptStdIn("Enter password: ")
+	if err != nil {
+		return err
+	}
+	c.Data.(*userData).Password = line
 
-	_, err := ctx.Client.
+	_, err = ctx.Client.
 		Post(c.ApiPath).
 		Body(c.Data).
 		Expect(201).
@@ -371,23 +371,19 @@ func resetPassword(c *Command, ctx *Context) error {
 			return err
 		}
 
-		bio := bufio.NewReader(os.Stdin)
-		fmt.Printf("Verify key: ")
-		line, _, err := bio.ReadLine()
+		line, err := promptStdIn("Verify key: ")
 		if err != nil {
 			return err
 		}
-		pw.ResetKey = string(line)
+		pw.ResetKey = line
 
 		return verifyResetPw(pw, ctx)
 	}
 }
 
 func verifyResetPw(data *pwData, ctx *Context) error {
-	bio := bufio.NewReader(os.Stdin)
 	for true {
-		fmt.Printf("New password: ")
-		line, _, err := bio.ReadLine()
+		line, err := promptStdIn("New password: ")
 		if err != nil {
 			return err
 		}
