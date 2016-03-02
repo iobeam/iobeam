@@ -39,7 +39,6 @@ func (b *bundle) Print() {
 	fmt.Printf("URI     : %s\n", b.URI)
 	fmt.Printf("Type    : %s\n", b.Type)
 	b.Checksum.Print()
-	fmt.Println()
 }
 
 // appData defines the JSON resource of an iobeam app
@@ -52,6 +51,7 @@ type appData struct {
 	LastMod         string `json:"last_modified,omitempty"`
 	RequestedStatus string `json:"requested_status,omitempty"`
 	CurrentStatus   string `json:"current_status,omitempty"`
+	Error           string `json:"error,omitempty"`
 }
 
 func (i *appData) Print() {
@@ -62,7 +62,12 @@ func (i *appData) Print() {
 		fmt.Printf("Requested Status: %s\n", i.RequestedStatus)
 	}
 	if len(i.CurrentStatus) > 0 {
-		fmt.Printf("Current Status  : %s\n", i.CurrentStatus)
+		fmt.Printf("Current Status  : %s", i.CurrentStatus)
+		if len(i.Error) > 0 {
+			fmt.Printf(" (%s)\n", i.Error)
+		} else {
+			fmt.Printf("\n")
+		}
 	}
 	fmt.Println()
 	fmt.Println("BUNDLE INFO")
@@ -387,7 +392,8 @@ func listApps(c *Command, ctx *Context) error {
 			for _, info := range list.Apps {
 				fmt.Printf(spacer)
 				info.Print()
-				spacer = "----------\n"
+				fmt.Println()
+				spacer = "----------\n\n"
 			}
 		} else {
 			fmt.Printf("No apps found for project %d.\n", args.projectId)
