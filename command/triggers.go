@@ -298,9 +298,10 @@ func newCreateTriggerCommand(ctx *Context) *Command {
 		Name:  "create",
 		Usage: "Commands for adding new triggers",
 		SubCommands: Mux{
-			"http": newHTTPTriggerCommand(ctx),
-			"mqtt": newMQTTTriggerCommand(ctx),
-			"sms":  newSMSTriggerCommand(ctx),
+			"email": newEmailTriggerCommand(ctx),
+			"http":  newHTTPTriggerCommand(ctx),
+			"mqtt":  newMQTTTriggerCommand(ctx),
+			"sms":   newSMSTriggerCommand(ctx),
 		},
 	}
 	cmd.NewFlagSet("config")
@@ -508,6 +509,66 @@ func newSMSConfig(c *Command, ctx *Context) error {
 	body := fullTrigger{
 		Actions: []triggerAction{
 			{Type: "sms", MinDelay: args.minDelay, Args: args.data},
+		},
+	}
+	body.ProjectId = args.ProjectId
+	body.TriggerName = args.TriggerName
+	body.DataExpiry = args.DataExpiry
+
+	return newConfig(&body, c, ctx)
+}
+
+//
+// Email data structures and functions
+//
+
+type emailActionData struct {
+	To      []string `json:"to"`
+	Subject string   `json:"subject,omitempty"`
+	Payload string   `json:"payload"`
+}
+
+func (d *emailActionData) isEmailDataValid() bool {
+	return len(d.To) > 0 && len(d.Payload) > 0
+}
+
+type emailConfigArgs struct {
+	triggerData
+	minDelay uint64
+	data     emailActionData
+}
+
+func (c *emailConfigArgs) IsValid() bool {
+	return c.triggerData.IsValid() && c.minDelay >= 0 && c.data.isEmailDataValid()
+}
+
+func newEmailTriggerCommand(ctx *Context) *Command {
+	c := new(emailConfigArgs)
+	c.data.To = make([]string, 1)
+	cmd := &Command{
+		Name:    "email",
+		ApiPath: "/v1/triggers",
+		Usage:   "Create a new email trigger",
+		Data:    c,
+		Action:  newEmailConfig,
+	}
+
+	flags := cmd.NewFlagSet("config email")
+	c.setCommonFlags(flags, ctx)
+	flags.Uint64Var(&c.minDelay, "minDelay", 0, descCreateMinDelay)
+
+	flags.StringVar(&c.data.To[0], "to", "", "Email address recipient.")
+	flags.StringVar(&c.data.Subject, "subject", "", "Email subject line.")
+	flags.StringVar(&c.data.Payload, "payload", "", "Email message body.")
+
+	return cmd
+}
+
+func newEmailConfig(c *Command, ctx *Context) error {
+	args := c.Data.(*emailConfigArgs)
+	body := fullTrigger{
+		Actions: []triggerAction{
+			{Type: "email", MinDelay: args.minDelay, Args: args.data},
 		},
 	}
 	body.ProjectId = args.ProjectId
