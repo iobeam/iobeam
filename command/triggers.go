@@ -127,16 +127,24 @@ func getAllTriggers(c *Command, ctx *Context) error {
 	return err
 }
 
-// Single get data and functions
-
-type triggerGetArgs struct {
+type triggerBaseArgs struct {
 	projectId   uint64
 	triggerId   uint64
 	triggerName string
 }
 
-func (a *triggerGetArgs) IsValid() bool {
+func (a *triggerBaseArgs) IsValid() bool {
 	return a.projectId > 0 && (a.triggerId > 0 || len(a.triggerName) > 0)
+}
+
+// Single get data and functions
+
+type triggerGetArgs struct {
+	triggerBaseArgs
+}
+
+func (a *triggerGetArgs) IsValid() bool {
+	return a.triggerBaseArgs.IsValid()
 }
 
 func newGetTriggerCommand(ctx *Context) *Command {
@@ -181,13 +189,11 @@ func getTrigger(c *Command, ctx *Context) error {
 // Delete data and functions
 
 type triggerDeleteArgs struct {
-	projectId   uint64
-	triggerId   uint64
-	triggerName string
+	triggerBaseArgs
 }
 
 func (a *triggerDeleteArgs) IsValid() bool {
-	return a.projectId > 0 && (a.triggerId > 0 || len(a.triggerName) > 0)
+	return a.triggerBaseArgs.IsValid()
 }
 
 func newDeleteTriggerCommand(ctx *Context) *Command {

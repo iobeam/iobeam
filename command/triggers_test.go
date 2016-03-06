@@ -1,6 +1,89 @@
 package command
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
+
+const (
+	testDescInvalidNoNameOrId = "invalid, no name or id"
+	testDescInvalidNameLen    = "invalid, name must have len > 0"
+	testDescInvalidTriggerId  = "invalid, trigger id must be > 0"
+)
+
+var casesBaseArgs = []dataTestCase{
+	{
+		desc: "a valid triggerBaseArgs object w/ trigger id",
+		in: &triggerBaseArgs{
+			projectId: 1,
+			triggerId: 1,
+		},
+		want: true,
+	},
+	{
+		desc: "a valid triggerBaseArgs object w/ trigger name",
+		in: &triggerBaseArgs{
+			projectId:   1,
+			triggerName: "test",
+		},
+		want: true,
+	},
+	{
+		desc: testDescInvalidNoNameOrId,
+		in: &triggerBaseArgs{
+			projectId: 1,
+		},
+		want: false,
+	},
+	{
+		desc: testDescInvalidProjectId,
+		in: &triggerBaseArgs{
+			projectId:   0,
+			triggerName: "test",
+		},
+		want: false,
+	},
+	{
+		desc: testDescInvalidNameLen,
+		in: &triggerBaseArgs{
+			projectId:   1,
+			triggerName: "",
+		},
+		want: false,
+	},
+	{
+		desc: testDescInvalidTriggerId,
+		in: &triggerBaseArgs{
+			projectId: 1,
+			triggerId: 0,
+		},
+		want: false,
+	},
+}
+
+func TestTriggerBaseArgsValidity(t *testing.T) {
+	runDataTestCase(t, casesBaseArgs)
+}
+
+func TestTriggerGetArgsValidity(t *testing.T) {
+	cases := make([]dataTestCase, len(casesBaseArgs))
+	for i, c := range casesBaseArgs {
+		cases[i].desc = strings.Replace(c.desc, "triggerBaseArgs", "triggerGetArgs", -1)
+		cases[i].in = &triggerGetArgs{*c.in.(*triggerBaseArgs)}
+		cases[i].want = c.want
+	}
+	runDataTestCase(t, cases)
+}
+
+func TestTriggerDeleteArgsValidity(t *testing.T) {
+	cases := make([]dataTestCase, len(casesBaseArgs))
+	for i, c := range casesBaseArgs {
+		cases[i].desc = strings.Replace(c.desc, "triggerBaseArgs", "triggerDeleteArgs", -1)
+		cases[i].in = &triggerDeleteArgs{*c.in.(*triggerBaseArgs)}
+		cases[i].want = c.want
+	}
+	runDataTestCase(t, cases)
+}
 
 func TestTriggerTestArgsValidity(t *testing.T) {
 	cases := []dataTestCase{
