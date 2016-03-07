@@ -40,10 +40,10 @@ func NewTriggersCommand(ctx *Context) *Command {
 
 // triggerData is the main meta data for all triggers.
 type triggerData struct {
-	TriggerId   uint64 `json:"trigger_id",omitempty`
+	TriggerId   uint64 `json:"trigger_id,omitempty"`
 	ProjectId   uint64 `json:"project_id"`
 	TriggerName string `json:"trigger_name"`
-	DataExpiry  uint64 `json:"data_expiry",omitempty`
+	DataExpiry  uint64 `json:"data_expiry,omitempty"`
 }
 
 func (d *triggerData) IsValid() bool {
@@ -79,6 +79,19 @@ func (t *fullTrigger) Print() {
 		fmt.Printf("     Args: %v\n", a.Args)
 	}
 	fmt.Println()
+}
+
+func newTrigger(name string, projectId, dataExpiry uint64, actions []triggerAction) *fullTrigger {
+	ret := &fullTrigger{
+		triggerData: triggerData{
+			TriggerName: name,
+			ProjectId:   projectId,
+			DataExpiry:  dataExpiry,
+		},
+		Actions: make([]triggerAction, len(actions)),
+	}
+	copy(ret.Actions, actions)
+	return ret
 }
 
 // List command data and functions
@@ -315,6 +328,10 @@ func newCreateTriggerCommand(ctx *Context) *Command {
 	return cmd
 }
 
+func newTriggerFromMeta(meta *triggerData, actions []triggerAction) *fullTrigger {
+	return newTrigger(meta.TriggerName, meta.ProjectId, meta.DataExpiry, actions)
+}
+
 // newConfig generates and sends a new trigger configuration given a body
 // that is pre-made by each individual handler (http, mqtt, etc).
 func newConfig(body *fullTrigger, c *Command, ctx *Context) error {
@@ -385,16 +402,12 @@ func newHTTPTriggerCommand(ctx *Context) *Command {
 
 func newHTTPConfig(c *Command, ctx *Context) error {
 	args := c.Data.(*httpConfigArgs)
-	body := fullTrigger{
-		Actions: []triggerAction{
-			{Type: "http", MinDelay: args.minDelay, Args: args.data},
-		},
+	actions := []triggerAction{
+		{Type: "http", MinDelay: args.minDelay, Args: args.data},
 	}
-	body.ProjectId = args.ProjectId
-	body.TriggerName = args.TriggerName
-	body.DataExpiry = args.DataExpiry
+	body := newTriggerFromMeta(&args.triggerData, actions)
 
-	return newConfig(&body, c, ctx)
+	return newConfig(body, c, ctx)
 }
 
 //
@@ -449,16 +462,12 @@ func newMQTTTriggerCommand(ctx *Context) *Command {
 
 func newMQTTConfig(c *Command, ctx *Context) error {
 	args := c.Data.(*mqttConfigArgs)
-	body := fullTrigger{
-		Actions: []triggerAction{
-			{Type: "mqtt", MinDelay: args.minDelay, Args: args.data},
-		},
+	actions := []triggerAction{
+		{Type: "mqtt", MinDelay: args.minDelay, Args: args.data},
 	}
-	body.ProjectId = args.ProjectId
-	body.TriggerName = args.TriggerName
-	body.DataExpiry = args.DataExpiry
+	body := newTriggerFromMeta(&args.triggerData, actions)
 
-	return newConfig(&body, c, ctx)
+	return newConfig(body, c, ctx)
 }
 
 //
@@ -512,16 +521,12 @@ func newSMSTriggerCommand(ctx *Context) *Command {
 
 func newSMSConfig(c *Command, ctx *Context) error {
 	args := c.Data.(*smsConfigArgs)
-	body := fullTrigger{
-		Actions: []triggerAction{
-			{Type: "sms", MinDelay: args.minDelay, Args: args.data},
-		},
+	actions := []triggerAction{
+		{Type: "sms", MinDelay: args.minDelay, Args: args.data},
 	}
-	body.ProjectId = args.ProjectId
-	body.TriggerName = args.TriggerName
-	body.DataExpiry = args.DataExpiry
+	body := newTriggerFromMeta(&args.triggerData, actions)
 
-	return newConfig(&body, c, ctx)
+	return newConfig(body, c, ctx)
 }
 
 //
@@ -572,14 +577,10 @@ func newEmailTriggerCommand(ctx *Context) *Command {
 
 func newEmailConfig(c *Command, ctx *Context) error {
 	args := c.Data.(*emailConfigArgs)
-	body := fullTrigger{
-		Actions: []triggerAction{
-			{Type: "email", MinDelay: args.minDelay, Args: args.data},
-		},
+	actions := []triggerAction{
+		{Type: "email", MinDelay: args.minDelay, Args: args.data},
 	}
-	body.ProjectId = args.ProjectId
-	body.TriggerName = args.TriggerName
-	body.DataExpiry = args.DataExpiry
+	body := newTriggerFromMeta(&args.triggerData, actions)
 
-	return newConfig(&body, c, ctx)
+	return newConfig(body, c, ctx)
 }
