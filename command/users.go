@@ -207,6 +207,19 @@ func newGetUserCmd(ctx *Context) *Command {
 	return cmd
 }
 
+// NewWhoAmICmd returns a command that gets the current user info
+func NewWhoAmICmd(ctx *Context) *Command {
+	user := getData{self: ctx.Profile.ActiveUser != 0}
+	cmd := &Command{
+		Name:    "whoami",
+		ApiPath: "/v1/users",
+		Usage:   "Get current user info.",
+		Data:    &user,
+		Action:  getUser,
+	}
+	return cmd
+}
+
 func getUser(c *Command, ctx *Context) error {
 	user := c.Data.(*getData)
 	req := ctx.Client.Get(c.ApiPath)

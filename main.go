@@ -71,6 +71,9 @@ func main() {
 			"version": newVersionCommand(),
 		},
 	}
+	if ctx.Profile.ActiveUser != 0 {
+		cmd.SubCommands["whoami"] = command.NewWhoAmICmd(ctx)
+	}
 	cmd.NewFlagSet("iobeam")
 
 	if len(ctx.Args) < 1 {
