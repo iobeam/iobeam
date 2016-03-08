@@ -13,6 +13,9 @@ import (
 	"github.com/iobeam/iobeam/config"
 )
 
+var flagSetNames = make(map[string]string)
+var baseApiPath = make(map[string]string)
+
 // setFlags is used to call a flag multiple times to create lists or maps of
 // flag values.
 type setFlags map[string]struct{}

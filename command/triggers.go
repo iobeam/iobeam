@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/iobeam/iobeam/client"
 )
 
 const (
@@ -16,10 +14,19 @@ const (
 	descCreateMinDelay    = "Minimum time (in milliseconds) between successive trigger firings (used to rate limit trigger events)."
 )
 
+func init() {
+	flagSetNames["trigger"] = "trigger"
+	baseApiPath["trigger"] = "/v1/triggers"
+}
+
+func (c *Command) newFlagSetTrigger(cmd string) *flag.FlagSet {
+	return c.NewFlagSet(flagSetNames["trigger"] + " " + cmd)
+}
+
 // NewTriggersCommand returns the base 'trigger' command.
 func NewTriggersCommand(ctx *Context) *Command {
 	cmd := &Command{
-		Name:  "trigger",
+		Name:  flagSetNames["trigger"],
 		Usage: "Commands for managing triggers.",
 		SubCommands: Mux{
 			"create": newCreateTriggerCommand(ctx),
@@ -29,7 +36,7 @@ func NewTriggersCommand(ctx *Context) *Command {
 			"test":   newTestTriggerCommand(ctx),
 		},
 	}
-	cmd.NewFlagSet("iobeam trigger")
+	cmd.NewFlagSet("iobeam " + flagSetNames["trigger"])
 
 	return cmd
 }
@@ -77,6 +84,7 @@ func (t *fullTrigger) Print() {
 		fmt.Printf("  %d) Action type: %s\n", i, a.Type)
 		fmt.Println("     Min delay  :", a.MinDelay)
 		fmt.Printf("     Args: %v\n", a.Args)
+		i++
 	}
 	fmt.Println()
 }
@@ -105,16 +113,17 @@ func (a *triggerListArgs) IsValid() bool {
 }
 
 func newListTriggersCommand(ctx *Context) *Command {
+	cmdStr := "list"
 	a := new(triggerListArgs)
 	cmd := &Command{
-		Name:    "list",
-		ApiPath: "/v1/triggers",
+		Name:    cmdStr,
+		ApiPath: baseApiPath["trigger"],
 		Usage:   "Get all triggers for a project",
 		Data:    a,
 		Action:  getAllTriggers,
 	}
 
-	flags := cmd.NewFlagSet("list")
+	flags := cmd.newFlagSetTrigger(cmdStr)
 	flags.Uint64Var(&a.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID to get triggers from.")
 
 	return cmd
@@ -150,6 +159,13 @@ func (a *triggerBaseArgs) IsValid() bool {
 	return a.projectId > 0 && (a.triggerId > 0 || len(a.triggerName) > 0)
 }
 
+func (a *triggerBaseArgs) getApiPath() string {
+	if a.triggerId > 0 {
+		return baseApiPath["trigger"] + "/" + strconv.FormatUint(a.triggerId, 10)
+	}
+	return baseApiPath["trigger"]
+}
+
 // Single get data and functions
 
 type triggerGetArgs struct {
@@ -161,16 +177,17 @@ func (a *triggerGetArgs) IsValid() bool {
 }
 
 func newGetTriggerCommand(ctx *Context) *Command {
+	cmdStr := "get"
 	a := new(triggerGetArgs)
 	cmd := &Command{
-		Name:    "get",
-		ApiPath: "/v1/triggers",
-		Usage:   "Get trigger matching a name or id",
-		Data:    a,
-		Action:  getTrigger,
+		Name: cmdStr,
+		// ApiPath determined by flags
+		Usage:  "Get trigger matching a name or id",
+		Data:   a,
+		Action: getTrigger,
 	}
 
-	flags := cmd.NewFlagSet("get")
+	flags := cmd.newFlagSetTrigger(cmdStr)
 	flags.Uint64Var(&a.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID to get trigger from.")
 	flags.Uint64Var(&a.triggerId, "id", 0, "Trigger ID to get (either this or -name must be set).")
 	flags.StringVar(&a.triggerName, "name", "", "Trigger name to get (either this or -id must be set).")
@@ -180,11 +197,10 @@ func newGetTriggerCommand(ctx *Context) *Command {
 
 func getTrigger(c *Command, ctx *Context) error {
 	args := c.Data.(*triggerGetArgs)
-	var req *client.Request
-	if args.triggerId > 0 {
-		req = ctx.Client.Get(c.ApiPath + "/" + strconv.FormatUint(args.triggerId, 10))
-	} else {
-		req = ctx.Client.Get(c.ApiPath).Param("name", args.triggerName)
+
+	req := ctx.Client.Get(args.getApiPath())
+	if args.triggerId <= 0 {
+		req.Param("name", args.triggerName)
 	}
 
 	_, err := req.Expect(200).
@@ -210,16 +226,17 @@ func (a *triggerDeleteArgs) IsValid() bool {
 }
 
 func newDeleteTriggerCommand(ctx *Context) *Command {
+	cmdStr := "delete"
 	a := new(triggerDeleteArgs)
 	cmd := &Command{
-		Name:    "delete",
-		ApiPath: "/v1/triggers",
-		Usage:   "Delete trigger by id",
-		Data:    a,
-		Action:  deleteTrigger,
+		Name: cmdStr,
+		// ApiPath determined by flags
+		Usage:  "Delete trigger by id",
+		Data:   a,
+		Action: deleteTrigger,
 	}
 
-	flags := cmd.NewFlagSet("delete")
+	flags := cmd.newFlagSetTrigger(cmdStr)
 	flags.Uint64Var(&a.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID to delete trigger from.")
 	flags.Uint64Var(&a.triggerId, "id", 0, "Trigger ID to delete.")
 	// TODO: Support delete by name eventually
@@ -230,11 +247,9 @@ func newDeleteTriggerCommand(ctx *Context) *Command {
 
 func deleteTrigger(c *Command, ctx *Context) error {
 	args := c.Data.(*triggerDeleteArgs)
-	var req *client.Request
-	if args.triggerId > 0 {
-		req = ctx.Client.Delete(c.ApiPath + "/" + strconv.FormatUint(args.triggerId, 10))
-	} else {
-		req = ctx.Client.Delete(c.ApiPath).Param("name", args.triggerName)
+	req := ctx.Client.Delete(args.getApiPath())
+	if args.triggerId <= 0 {
+		req.Param("name", args.triggerName)
 	}
 
 	_, err := req.Expect(204).
@@ -273,16 +288,17 @@ func (a *triggerTestArgs) IsValid() bool {
 }
 
 func newTestTriggerCommand(ctx *Context) *Command {
+	cmdStr := "test"
 	a := new(triggerTestArgs)
 	cmd := &Command{
-		Name:    "test",
-		ApiPath: "/v1/triggers/events/test",
+		Name:    cmdStr,
+		ApiPath: baseApiPath["trigger"] + "/events/test",
 		Usage:   "Test that a trigger works.",
 		Data:    a,
 		Action:  testTrigger,
 	}
 
-	flags := cmd.NewFlagSet("test")
+	flags := cmd.newFlagSetTrigger(cmdStr)
 	flags.Uint64Var(&a.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID of trigger.")
 	flags.StringVar(&a.triggerName, "name", "", "Trigger name to test.")
 	flags.Var(&a.parameters, "param", "Parameters for trigger in form of \"param_key,param_value\" (flag can be used multiple times).")
@@ -310,12 +326,10 @@ func testTrigger(c *Command, ctx *Context) error {
 	return err
 }
 
-// Create data and functions
-
-func newCreateTriggerCommand(ctx *Context) *Command {
+func newMuxOnActionTypeCommand(ctx *Context, action, usage string) *Command {
 	cmd := &Command{
-		Name:  "create",
-		Usage: "Commands for adding new triggers",
+		Name:  action,
+		Usage: usage,
 		SubCommands: Mux{
 			"email": newEmailTriggerCommand(ctx),
 			"http":  newHTTPTriggerCommand(ctx),
@@ -323,9 +337,15 @@ func newCreateTriggerCommand(ctx *Context) *Command {
 			"sms":   newSMSTriggerCommand(ctx),
 		},
 	}
-	cmd.NewFlagSet("config")
+	cmd.newFlagSetTrigger(action)
 
 	return cmd
+}
+
+// Create data and functions
+
+func newCreateTriggerCommand(ctx *Context) *Command {
+	return newMuxOnActionTypeCommand(ctx, "create", "Commands for adding new triggers.")
 }
 
 func newTriggerFromMeta(meta *triggerData, actions []triggerAction) *fullTrigger {
@@ -388,7 +408,7 @@ func newHTTPTriggerCommand(ctx *Context) *Command {
 		Data:    c,
 		Action:  newHTTPConfig,
 	}
-	flags := cmd.NewFlagSet("config http")
+	flags := cmd.newFlagSetTrigger("create http")
 	c.setCommonFlags(flags, ctx)
 	flags.Uint64Var(&c.minDelay, "minDelay", 0, descCreateMinDelay)
 
@@ -447,7 +467,7 @@ func newMQTTTriggerCommand(ctx *Context) *Command {
 		Action:  newMQTTConfig,
 	}
 
-	flags := cmd.NewFlagSet("config mqtt")
+	flags := cmd.newFlagSetTrigger("create mqtt")
 	c.setCommonFlags(flags, ctx)
 	flags.Uint64Var(&c.minDelay, "minDelay", 0, descCreateMinDelay)
 
@@ -506,7 +526,7 @@ func newSMSTriggerCommand(ctx *Context) *Command {
 		Action:  newSMSConfig,
 	}
 
-	flags := cmd.NewFlagSet("config sms")
+	flags := cmd.newFlagSetTrigger("create sms")
 	c.setCommonFlags(flags, ctx)
 	flags.Uint64Var(&c.minDelay, "minDelay", 0, descCreateMinDelay)
 
@@ -564,7 +584,7 @@ func newEmailTriggerCommand(ctx *Context) *Command {
 		Action:  newEmailConfig,
 	}
 
-	flags := cmd.NewFlagSet("config email")
+	flags := cmd.newFlagSetTrigger("create email")
 	c.setCommonFlags(flags, ctx)
 	flags.Uint64Var(&c.minDelay, "minDelay", 0, descCreateMinDelay)
 
