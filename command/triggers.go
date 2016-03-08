@@ -13,6 +13,8 @@ const (
 	descCreateMinDelay    = "Minimum time (in milliseconds) between successive trigger firings (used to rate limit trigger events)."
 )
 
+var actionTypes = []string{"email", "http", "mqtt", "sms"}
+
 func init() {
 	flagSetNames["trigger"] = "trigger"
 	baseApiPath["trigger"] = "/v1/triggers"
@@ -32,11 +34,12 @@ func NewTriggersCommand(ctx *Context) *Command {
 		Name:  flagSetNames["trigger"],
 		Usage: "Commands for managing triggers.",
 		SubCommands: Mux{
-			"create": newCreateTriggerCommand(ctx),
-			"delete": newDeleteTriggerCommand(ctx),
-			"get":    newGetTriggerCommand(ctx),
-			"list":   newListTriggersCommand(ctx),
-			"test":   newTestTriggerCommand(ctx),
+			"add-action": newAddActionTriggerCommand(ctx),
+			"create":     newCreateTriggerCommand(ctx),
+			"delete":     newDeleteTriggerCommand(ctx),
+			"get":        newGetTriggerCommand(ctx),
+			"list":       newListTriggersCommand(ctx),
+			"test":       newTestTriggerCommand(ctx),
 		},
 	}
 	cmd.NewFlagSet("iobeam " + flagSetNames["trigger"])
@@ -200,22 +203,28 @@ func newGetTriggerCommand(ctx *Context) *Command {
 
 func getTrigger(c *Command, ctx *Context) error {
 	args := c.Data.(*triggerGetArgs)
+	t, err := _getTrigger(ctx, &args.triggerBaseArgs)
+	if err == nil {
+		t.Print()
+	}
+	return err
+}
 
+func _getTrigger(ctx *Context, args *triggerBaseArgs) (*fullTrigger, error) {
 	req := ctx.Client.Get(args.getApiPath())
 	if args.triggerId <= 0 {
 		req.Param("name", args.triggerName)
 	}
 
+	res := new(fullTrigger)
 	_, err := req.Expect(200).
 		ProjectToken(ctx.Profile, args.projectId).
-		ResponseBody(new(fullTrigger)).
+		ResponseBody(res).
 		ResponseBodyHandler(func(resp interface{}) error {
-		t := resp.(*fullTrigger)
-		t.Print()
 		return nil
 	}).Execute()
 
-	return err
+	return res, err
 }
 
 // Delete data and functions
@@ -329,35 +338,115 @@ func testTrigger(c *Command, ctx *Context) error {
 	return err
 }
 
-func newMuxOnActionTypeCommand(ctx *Context, action, usage string) *Command {
+// actionFunc is a function that generates a command that is based on the type
+// of trigger action given.
+type actionFunc func(*Context, string) *Command
+
+func newMuxOnActionTypeCommand(ctx *Context, action, usage string, fn actionFunc) *Command {
 	cmd := &Command{
-		Name:  action,
-		Usage: usage,
-		SubCommands: Mux{
-			"email": newEmailTriggerCommand(ctx),
-			"http":  newHTTPTriggerCommand(ctx),
-			"mqtt":  newMQTTTriggerCommand(ctx),
-			"sms":   newSMSTriggerCommand(ctx),
-		},
+		Name:        action,
+		Usage:       usage,
+		SubCommands: Mux{},
+	}
+	for _, t := range actionTypes {
+		cmd.SubCommands[t] = fn(ctx, t)
 	}
 	cmd.newFlagSetTrigger(action)
 
 	return cmd
 }
 
+func newCreateTriggerCommand(ctx *Context) *Command {
+	return newMuxOnActionTypeCommand(ctx, "create", "Commands for adding new triggers.", newCreateTypeCommand)
+}
+
+func newAddActionTriggerCommand(ctx *Context) *Command {
+	return newMuxOnActionTypeCommand(ctx, "add-action", "Commands for adding actions to triggers.", newAddActionTypeCommand)
+}
+
 // Create data and functions
 
-func newCreateTriggerCommand(ctx *Context) *Command {
-	return newMuxOnActionTypeCommand(ctx, "create", "Commands for adding new triggers.")
+type actionArgs interface {
+	Valid() bool
+	setFlags(flags *flag.FlagSet)
 }
 
-func newTriggerFromMeta(meta *triggerData, actions []triggerAction) *fullTrigger {
-	return newTrigger(meta.TriggerName, meta.ProjectId, meta.DataExpiry, actions)
+type createArgs struct {
+	triggerData
+	minDelay uint64
+	data     actionArgs
 }
 
-// newConfig generates and sends a new trigger configuration given a body
-// that is pre-made by each individual handler (http, mqtt, etc).
-func newConfig(body *fullTrigger, c *Command, ctx *Context) error {
+func (a *createArgs) IsValid() bool {
+	return a.triggerData.IsValid() && a.minDelay >= 0 && a.data.Valid()
+}
+
+func (a *createArgs) setCommonFlags(flags *flag.FlagSet, ctx *Context) {
+	flags.Uint64Var(&a.triggerData.ProjectId, "projectId", ctx.Profile.ActiveProject, descCreateProjectId)
+	flags.StringVar(&a.triggerData.TriggerName, "name", "", descCreateTriggerName)
+	flags.Uint64Var(&a.triggerData.DataExpiry, "dataExpiry", 0, descCreateDataExpiry)
+
+	flags.Uint64Var(&a.minDelay, "minDelay", 0, descCreateMinDelay)
+}
+
+func newCreateTypeCommand(ctx *Context, action string) *Command {
+	var c *createArgs
+	var desc string
+	switch action {
+	case "email":
+		c = &createArgs{data: &emailActionData{To: make([]string, 1)}}
+		desc = "Create a new email trigger."
+	case "http":
+		c = &createArgs{data: &httpActionData{}}
+		desc = "Create a new HTTP trigger."
+	case "mqtt":
+		c = &createArgs{data: &mqttActionData{}}
+		desc = "Create a new MQTT trigger."
+	case "sms":
+		c = &createArgs{data: &smsActionData{}}
+		desc = "Create a new Twilio SMS trigger."
+	default:
+		panic("Unknown action type")
+	}
+	return newGenericTriggerCommand(ctx, c, action, desc)
+}
+
+func newGenericTriggerCommand(ctx *Context, c *createArgs, name, desc string) *Command {
+	cmd := &Command{
+		Name:    name,
+		ApiPath: baseApiPath["trigger"],
+		Usage:   desc,
+		Data:    c,
+		Action:  createTrigger,
+	}
+	flags := cmd.newFlagSetTrigger("create " + name)
+	c.setCommonFlags(flags, ctx)
+	c.data.setFlags(flags)
+
+	return cmd
+}
+
+func createTrigger(c *Command, ctx *Context) error {
+	args := c.Data.(*createArgs)
+	actionType := ""
+	switch args.data.(type) {
+	default:
+		return fmt.Errorf("Unknown action type")
+	case *emailActionData:
+		actionType = "email"
+	case *httpActionData:
+		actionType = "http"
+	case *mqttActionData:
+		actionType = "mqtt"
+	case *smsActionData:
+		actionType = "sms"
+	}
+
+	actions := []triggerAction{
+		{Type: actionType, MinDelay: args.minDelay, Args: args.data},
+	}
+
+	body := newTrigger(args.triggerData.TriggerName, args.triggerData.ProjectId, args.triggerData.DataExpiry, actions)
 	_, err := ctx.Client.Post(c.ApiPath).Expect(201).
 		ProjectToken(ctx.Profile, body.ProjectId).
 		Body(body).
@@ -371,11 +460,98 @@ func newConfig(body *fullTrigger, c *Command, ctx *Context) error {
 	return err
 }
 
-func (d *triggerData) setCommonFlags(flags *flag.FlagSet, ctx *Context) {
-	flags.Uint64Var(&d.ProjectId, "projectId", ctx.Profile.ActiveProject, descCreateProjectId)
-	flags.StringVar(&d.TriggerName, "name", "", descCreateTriggerName)
-	flags.Uint64Var(&d.DataExpiry, "dataExpiry", 0, descCreateDataExpiry)
+// Adding action data types & funcs
+
+type addActionArgs struct {
+	triggerBaseArgs
+	minDelay uint64
+	data     actionArgs
 }
+
+func (a *addActionArgs) IsValid() bool {
+	return a.triggerBaseArgs.IsValid() && a.minDelay >= 0 && a.data.Valid()
+}
+
+func (a *addActionArgs) setCommonFlags(flags *flag.FlagSet, ctx *Context) {
+	flags.Uint64Var(&a.triggerBaseArgs.projectId, "projectId", ctx.Profile.ActiveProject, descCreateProjectId)
+	flags.Uint64Var(&a.triggerBaseArgs.triggerId, "id", 0, "ID of trigger to update (this or -name is REQUIRED).")
+	flags.StringVar(&a.triggerBaseArgs.triggerName, "name", "", "Name of trigger to update (this or -name is REQUIRED).")
+
+	flags.Uint64Var(&a.minDelay, "minDelay", 0, descCreateMinDelay)
+}
+
+func newAddActionTypeCommand(ctx *Context, action string) *Command {
+	var c *addActionArgs
+	var desc string
+	switch action {
+	case "email":
+		c = &addActionArgs{data: &emailActionData{To: make([]string, 1)}}
+		desc = "Add new email action to trigger"
+	case "http":
+		c = &addActionArgs{data: &httpActionData{}}
+		desc = "Add new HTTP action to trigger"
+	case "mqtt":
+		c = &addActionArgs{data: &mqttActionData{}}
+		desc = "Add new MQTT action to trigger"
+	case "sms":
+		c = &addActionArgs{data: &smsActionData{}}
+		desc = "Add new Twilio SMS action to trigger"
+	default:
+		panic("Unknown action type")
+	}
+	return newGenericAddActionTriggerCommand(ctx, c, action, desc)
+}
+
+func newGenericAddActionTriggerCommand(ctx *Context, c *addActionArgs, name, desc string) *Command {
+	cmd := &Command{
+		Name: name,
+		// ApiPath determined by flags
+		Usage:  desc,
+		Data:   c,
+		Action: addAction,
+	}
+	flags := cmd.newFlagSetTrigger("add-action " + name)
+	c.setCommonFlags(flags, ctx)
+	c.data.setFlags(flags)
+
+	return cmd
+}
+
+func addAction(c *Command, ctx *Context) error {
+	args := c.Data.(*addActionArgs)
+	trigger, err := _getTrigger(ctx, &args.triggerBaseArgs)
+	if err != nil {
+		return err
+	}
+
+	actionType := ""
+	switch args.data.(type) {
+	default:
+		return fmt.Errorf("Unknown action type")
+	case *emailActionData:
+		actionType = "email"
+	case *httpActionData:
+		actionType = "http"
+	case *mqttActionData:
+		actionType = "mqtt"
+	case *smsActionData:
+		actionType = "sms"
+	}
+
+	trigger.Actions = append(trigger.Actions, triggerAction{Type: actionType, MinDelay: args.minDelay, Args: args.data})
+	_, err = ctx.Client.
+		Put(baseApiPath["trigger"]+"/"+strconv.FormatUint(trigger.TriggerId, 10)).
+		Expect(200).
+		ProjectToken(ctx.Profile, trigger.ProjectId).
+		Body(trigger).
+		Execute()
+	if err == nil {
+		fmt.Println("Action successfully added to trigger.")
+	}
+	return err
+}
+
+// ----- INDIVIDUAL ACTION TYPES BELOW ----- //
 
 //
 // HTTP data structions and functions
@@ -388,49 +564,15 @@ type httpActionData struct {
 	ContentType string `json:"content_type"`
 }
 
-func (d *httpActionData) isHTTPDataValid() bool {
+func (d *httpActionData) Valid() bool {
 	return len(d.URL) > 0 && len(d.ContentType) > 0
 }
 
-type httpConfigArgs struct {
-	triggerData
-	minDelay uint64
-	data     httpActionData
-}
-
-func (c *httpConfigArgs) IsValid() bool {
-	return c.triggerData.IsValid() && c.minDelay >= 0 && c.data.isHTTPDataValid()
-}
-
-func newHTTPTriggerCommand(ctx *Context) *Command {
-	c := new(httpConfigArgs)
-	cmd := &Command{
-		Name:    "http",
-		ApiPath: "/v1/triggers",
-		Usage:   "Create a new HTTP trigger",
-		Data:    c,
-		Action:  newHTTPConfig,
-	}
-	flags := cmd.newFlagSetTrigger("create http")
-	c.setCommonFlags(flags, ctx)
-	flags.Uint64Var(&c.minDelay, "minDelay", 0, descCreateMinDelay)
-
-	flags.StringVar(&c.data.URL, "url", "", "URL to POST to when trigger is executed.")
-	flags.StringVar(&c.data.Payload, "payload", "", "Body of POST request (optional).")
-	flags.StringVar(&c.data.AuthHeader, "authHeader", "", "Value of 'Authorization' header of POST request, if needed (optional).")
-	flags.StringVar(&c.data.ContentType, "contentType", "text/plain", "Content type of payload.")
-
-	return cmd
-}
-
-func newHTTPConfig(c *Command, ctx *Context) error {
-	args := c.Data.(*httpConfigArgs)
-	actions := []triggerAction{
-		{Type: "http", MinDelay: args.minDelay, Args: args.data},
-	}
-	body := newTriggerFromMeta(&args.triggerData, actions)
-
-	return newConfig(body, c, ctx)
+func (d *httpActionData) setFlags(flags *flag.FlagSet) {
+	flags.StringVar(&d.URL, "url", "", "URL to POST to when trigger is executed.")
+	flags.StringVar(&d.Payload, "payload", "", "Body of POST request (optional).")
+	flags.StringVar(&d.AuthHeader, "authHeader", "", "Value of 'Authorization' header of POST request, if needed (optional).")
+	flags.StringVar(&d.ContentType, "contentType", "text/plain", "Content type of payload.")
 }
 
 //
@@ -446,51 +588,16 @@ type mqttActionData struct {
 	Payload  string `json:"payload"`
 }
 
-func (d *mqttActionData) isMQTTDataValid() bool {
+func (d *mqttActionData) Valid() bool {
 	return len(d.Broker) > 0 && len(d.Topic) > 0 && len(d.Payload) > 0
 }
 
-type mqttConfigArgs struct {
-	triggerData
-	minDelay uint64
-	data     mqttActionData
-}
-
-func (c *mqttConfigArgs) IsValid() bool {
-	return c.triggerData.IsValid() && c.minDelay >= 0 && c.data.isMQTTDataValid()
-}
-
-func newMQTTTriggerCommand(ctx *Context) *Command {
-	c := new(mqttConfigArgs)
-	cmd := &Command{
-		Name:    "mqtt",
-		ApiPath: "/v1/triggers",
-		Usage:   "Create a new MQTT trigger",
-		Data:    c,
-		Action:  newMQTTConfig,
-	}
-
-	flags := cmd.newFlagSetTrigger("create mqtt")
-	c.setCommonFlags(flags, ctx)
-	flags.Uint64Var(&c.minDelay, "minDelay", 0, descCreateMinDelay)
-
-	flags.StringVar(&c.data.Broker, "broker", "", "MQTT broker address to send to.")
-	flags.StringVar(&c.data.Username, "username", "", "Username to use with MQTT broker")
-	flags.StringVar(&c.data.Password, "password", "", "Password to use with MQTT broker")
-	flags.StringVar(&c.data.Topic, "topic", "", "MQTT topic to post message to.")
-	flags.StringVar(&c.data.Payload, "payload", "", "Body of the MQTT request.")
-
-	return cmd
-}
-
-func newMQTTConfig(c *Command, ctx *Context) error {
-	args := c.Data.(*mqttConfigArgs)
-	actions := []triggerAction{
-		{Type: "mqtt", MinDelay: args.minDelay, Args: args.data},
-	}
-	body := newTriggerFromMeta(&args.triggerData, actions)
-
-	return newConfig(body, c, ctx)
+func (d *mqttActionData) setFlags(flags *flag.FlagSet) {
+	flags.StringVar(&d.Broker, "broker", "", "MQTT broker address to send to.")
+	flags.StringVar(&d.Username, "username", "", "Username to use with MQTT broker")
+	flags.StringVar(&d.Password, "password", "", "Password to use with MQTT broker")
+	flags.StringVar(&d.Topic, "topic", "", "MQTT topic to post message to.")
+	flags.StringVar(&d.Payload, "payload", "", "Body of the MQTT request.")
 }
 
 //
@@ -505,51 +612,16 @@ type smsActionData struct {
 	Payload    string `json:"message"`
 }
 
-func (d *smsActionData) isSMSDataValid() bool {
+func (d *smsActionData) Valid() bool {
 	return len(d.AccountSID) > 0 && len(d.AuthToken) > 0 && len(d.From) > 0 && len(d.To) > 0 && len(d.Payload) > 0
 }
 
-type smsConfigArgs struct {
-	triggerData
-	minDelay uint64
-	data     smsActionData
-}
-
-func (c *smsConfigArgs) IsValid() bool {
-	return c.triggerData.IsValid() && c.minDelay >= 0 && c.data.isSMSDataValid()
-}
-
-func newSMSTriggerCommand(ctx *Context) *Command {
-	c := new(smsConfigArgs)
-	cmd := &Command{
-		Name:    "sms",
-		ApiPath: "/v1/triggers",
-		Usage:   "Create a new Twilio SMS trigger",
-		Data:    c,
-		Action:  newSMSConfig,
-	}
-
-	flags := cmd.newFlagSetTrigger("create sms")
-	c.setCommonFlags(flags, ctx)
-	flags.Uint64Var(&c.minDelay, "minDelay", 0, descCreateMinDelay)
-
-	flags.StringVar(&c.data.AccountSID, "accountSid", "", "Twilio account SID.")
-	flags.StringVar(&c.data.AuthToken, "authToken", "", "Twilio authorization token.")
-	flags.StringVar(&c.data.From, "from", "", "Phone number of the SMS sender.")
-	flags.StringVar(&c.data.To, "to", "", "Phone number of the SMS recipient.")
-	flags.StringVar(&c.data.Payload, "payload", "", "SMS message body.")
-
-	return cmd
-}
-
-func newSMSConfig(c *Command, ctx *Context) error {
-	args := c.Data.(*smsConfigArgs)
-	actions := []triggerAction{
-		{Type: "sms", MinDelay: args.minDelay, Args: args.data},
-	}
-	body := newTriggerFromMeta(&args.triggerData, actions)
-
-	return newConfig(body, c, ctx)
+func (d *smsActionData) setFlags(flags *flag.FlagSet) {
+	flags.StringVar(&d.AccountSID, "accountSid", "", "Twilio account SID.")
+	flags.StringVar(&d.AuthToken, "authToken", "", "Twilio authorization token.")
+	flags.StringVar(&d.From, "from", "", "Phone number of the SMS sender.")
+	flags.StringVar(&d.To, "to", "", "Phone number of the SMS recipient.")
+	flags.StringVar(&d.Payload, "payload", "", "SMS message body.")
 }
 
 //
@@ -562,48 +634,12 @@ type emailActionData struct {
 	Payload string   `json:"payload"`
 }
 
-func (d *emailActionData) isEmailDataValid() bool {
+func (d *emailActionData) Valid() bool {
 	return len(d.To) > 0 && len(d.Payload) > 0
 }
 
-type emailConfigArgs struct {
-	triggerData
-	minDelay uint64
-	data     emailActionData
-}
-
-func (c *emailConfigArgs) IsValid() bool {
-	return c.triggerData.IsValid() && c.minDelay >= 0 && c.data.isEmailDataValid()
-}
-
-func newEmailTriggerCommand(ctx *Context) *Command {
-	c := new(emailConfigArgs)
-	c.data.To = make([]string, 1)
-	cmd := &Command{
-		Name:    "email",
-		ApiPath: "/v1/triggers",
-		Usage:   "Create a new email trigger",
-		Data:    c,
-		Action:  newEmailConfig,
-	}
-
-	flags := cmd.newFlagSetTrigger("create email")
-	c.setCommonFlags(flags, ctx)
-	flags.Uint64Var(&c.minDelay, "minDelay", 0, descCreateMinDelay)
-
-	flags.StringVar(&c.data.To[0], "to", "", "Email address recipient.")
-	flags.StringVar(&c.data.Subject, "subject", "", "Email subject line.")
-	flags.StringVar(&c.data.Payload, "payload", "", "Email message body.")
-
-	return cmd
-}
-
-func newEmailConfig(c *Command, ctx *Context) error {
-	args := c.Data.(*emailConfigArgs)
-	actions := []triggerAction{
-		{Type: "email", MinDelay: args.minDelay, Args: args.data},
-	}
-	body := newTriggerFromMeta(&args.triggerData, actions)
-
-	return newConfig(body, c, ctx)
+func (d *emailActionData) setFlags(flags *flag.FlagSet) {
+	flags.StringVar(&d.To[0], "to", "", "Email address recipient.")
+	flags.StringVar(&d.Subject, "subject", "", "Email subject line.")
+	flags.StringVar(&d.Payload, "payload", "", "Email message body.")
 }
