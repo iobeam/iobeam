@@ -10,22 +10,27 @@ import (
 )
 
 const (
-	baseApiPathApp = "/v1/apps"
-	flagSetApp     = "iobeam app"
-	cmdGet         = "get"
-	cmdDelete      = "delete"
-	cmdLaunch      = "create"
-	cmdList        = "list"
-	cmdStart       = "start"
-	cmdStop        = "stop"
-	cmdUpdate      = "update"
+	cmdGet    = "get"
+	cmdDelete = "delete"
+	cmdLaunch = "create"
+	cmdList   = "list"
+	cmdStart  = "start"
+	cmdStop   = "stop"
+	cmdUpdate = "update"
 
 	appStatusRunning = "RUNNING"
 	appStatusStopped = "STOPPED"
+
+	keyApp = "app"
 )
 
+func init() {
+	flagSetNames[keyApp] = "iobeam app"
+	baseApiPath[keyApp] = "/v1/apps"
+}
+
 func (c *Command) newFlagSetApp(cmd string) *flag.FlagSet {
-	return c.NewFlagSet(flagSetApp + " " + cmd)
+	return c.NewFlagSet(flagSetNames[keyApp] + " " + cmd)
 }
 
 // bundle describes an app's file bundle
@@ -77,7 +82,7 @@ func (i *appData) Print() {
 // NewAppsCommand returns the base 'app' command.
 func NewAppsCommand(ctx *Context) *Command {
 	cmd := &Command{
-		Name:  "app",
+		Name:  keyApp,
 		Usage: "Commands for managing apps.",
 		SubCommands: Mux{
 			cmdLaunch: newLaunchAppCmd(ctx),
@@ -89,7 +94,7 @@ func NewAppsCommand(ctx *Context) *Command {
 			cmdUpdate: newUpdateAppCmd(ctx),
 		},
 	}
-	cmd.NewFlagSet(flagSetApp)
+	cmd.NewFlagSet(flagSetNames[keyApp])
 
 	return cmd
 }
@@ -109,7 +114,7 @@ func newLaunchAppCmd(ctx *Context) *Command {
 
 	cmd := &Command{
 		Name:    cmdLaunch,
-		ApiPath: baseApiPathApp,
+		ApiPath: baseApiPath[keyApp],
 		Usage:   "Create (and launch) a Spark app.",
 		Data:    args,
 		Action:  launchApp,
@@ -177,11 +182,11 @@ func newUpdateAppCmd(ctx *Context) *Command {
 	args := new(updateAppArgs)
 
 	cmd := &Command{
-		Name:    cmdUpdate,
-		ApiPath: baseApiPathApp,
-		Usage:   "Update an app, including replacing the JAR.",
-		Data:    args,
-		Action:  updateApp,
+		Name: cmdUpdate,
+		// ApiPath determined by flags
+		Usage:  "Update an app, including replacing the JAR.",
+		Data:   args,
+		Action: updateApp,
 	}
 	flags := cmd.newFlagSetApp(cmdUpdate)
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID (defaults to active project).")
@@ -201,7 +206,6 @@ func updateApp(c *Command, ctx *Context) error {
 		projectId: args.projectId,
 	})
 	if err != nil {
-		fmt.Println("errrrrr")
 		return err
 	}
 
@@ -225,7 +229,7 @@ func updateApp(c *Command, ctx *Context) error {
 	}
 
 	rsp, err := ctx.Client.
-		Put(baseApiPathApp+"/"+strconv.FormatUint(args.id, 10)).
+		Put(baseApiPath[keyApp]+"/"+strconv.FormatUint(args.id, 10)).
 		Expect(200).
 		ProjectToken(ctx.Profile, args.projectId).
 		Body(app).
@@ -265,11 +269,11 @@ func newGetAppCmd(ctx *Context) *Command {
 	args := new(getAppArgs)
 
 	cmd := &Command{
-		Name:    cmdGet,
-		ApiPath: baseApiPathApp,
-		Usage:   "Get app information.",
-		Data:    args,
-		Action:  getApp,
+		Name: cmdGet,
+		// ApiPath determined by flags
+		Usage:  "Get app information.",
+		Data:   args,
+		Action: getApp,
 	}
 	flags := cmd.newFlagSetApp(cmdGet)
 	flags.Uint64Var(&args.id, "id", 0, "App ID to get (this or -name is required)")
@@ -292,9 +296,9 @@ func getApp(c *Command, ctx *Context) error {
 func _getApp(ctx *Context, args *baseAppArgs) (*appData, error) {
 	var req *client.Request
 	if args.id > 0 {
-		req = ctx.Client.Get(baseApiPathApp + "/" + strconv.FormatUint(args.id, 10))
+		req = ctx.Client.Get(baseApiPath[keyApp] + "/" + strconv.FormatUint(args.id, 10))
 	} else {
-		req = ctx.Client.Get(baseApiPathApp).Param("name", args.name)
+		req = ctx.Client.Get(baseApiPath[keyApp]).Param("name", args.name)
 	}
 
 	app := new(appData)
@@ -321,11 +325,11 @@ func newDeleteAppCmd(ctx *Context) *Command {
 	args := new(deleteAppArgs)
 
 	cmd := &Command{
-		Name:    cmdDelete,
-		ApiPath: baseApiPathApp,
-		Usage:   "Delete an app.",
-		Data:    args,
-		Action:  deleteApp,
+		Name: cmdDelete,
+		// ApiPath determined by flags
+		Usage:  "Delete an app.",
+		Data:   args,
+		Action: deleteApp,
 	}
 	flags := cmd.newFlagSetApp(cmdDelete)
 	flags.Uint64Var(&args.id, "id", 0, "App ID to delete (REQUIRED)")
@@ -337,7 +341,7 @@ func newDeleteAppCmd(ctx *Context) *Command {
 
 func deleteApp(c *Command, ctx *Context) error {
 	args := c.Data.(*deleteAppArgs)
-	req := ctx.Client.Delete(baseApiPathApp + "/" + strconv.FormatUint(args.id, 10))
+	req := ctx.Client.Delete(baseApiPath[keyApp] + "/" + strconv.FormatUint(args.id, 10))
 
 	_, err := req.Expect(204).
 		ProjectToken(ctx.Profile, args.projectId).Execute()
@@ -363,7 +367,7 @@ func newListAppsCmd(ctx *Context) *Command {
 
 	cmd := &Command{
 		Name:    cmdList,
-		ApiPath: baseApiPathApp,
+		ApiPath: baseApiPath[keyApp],
 		Usage:   "List apps for a project.",
 		Data:    args,
 		Action:  listApps,
@@ -409,11 +413,11 @@ func newStartAppCmd(ctx *Context) *Command {
 	args := new(baseAppArgs)
 
 	cmd := &Command{
-		Name:    cmdStart,
-		ApiPath: baseApiPathApp,
-		Usage:   "Start an app by name/id.",
-		Data:    args,
-		Action:  startApp,
+		Name: cmdStart,
+		// ApiPath determined by flags
+		Usage:  "Start an app by name/id.",
+		Data:   args,
+		Action: startApp,
 	}
 	flags := cmd.newFlagSetApp(cmdStart)
 	flags.Uint64Var(&args.id, "id", 0, "App ID to start (REQUIRED).")
@@ -433,11 +437,11 @@ func newStopAppCmd(ctx *Context) *Command {
 	args := new(baseAppArgs)
 
 	cmd := &Command{
-		Name:    cmdStop,
-		ApiPath: baseApiPathApp,
-		Usage:   "Stop an app by name/id.",
-		Data:    args,
-		Action:  stopApp,
+		Name: cmdStop,
+		// ApiPath determined by flags
+		Usage:  "Stop an app by name/id.",
+		Data:   args,
+		Action: stopApp,
 	}
 	flags := cmd.newFlagSetApp(cmdStart)
 	flags.Uint64Var(&args.id, "id", 0, "App ID to stop (REQUIRED).")
@@ -461,9 +465,9 @@ func _updateAppStatus(ctx *Context, args *baseAppArgs, status string) error {
 
 	var req *client.Request
 	if args.id > 0 {
-		req = ctx.Client.Put(baseApiPathApp + "/" + strconv.FormatUint(args.id, 10))
+		req = ctx.Client.Put(baseApiPath[keyApp] + "/" + strconv.FormatUint(args.id, 10))
 	} else {
-		req = ctx.Client.Put(baseApiPathApp).Param("name", args.name)
+		req = ctx.Client.Put(baseApiPath[keyApp]).Param("name", args.name)
 	}
 
 	app.RequestedStatus = status
