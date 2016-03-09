@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
-	"strconv"
 
 	"github.com/iobeam/iobeam/client"
 )
@@ -31,6 +30,10 @@ func init() {
 
 func (c *Command) newFlagSetApp(cmd string) *flag.FlagSet {
 	return c.NewFlagSet(flagSetNames[keyApp] + " " + cmd)
+}
+
+func getUrlforAppId(id uint64) string {
+	return getUrlForResource(baseApiPath[keyApp], id)
 }
 
 // bundle describes an app's file bundle
@@ -229,7 +232,7 @@ func updateApp(c *Command, ctx *Context) error {
 	}
 
 	rsp, err := ctx.Client.
-		Put(baseApiPath[keyApp]+"/"+strconv.FormatUint(args.id, 10)).
+		Put(getUrlforAppId(args.id)).
 		Expect(200).
 		ProjectToken(ctx.Profile, args.projectId).
 		Body(app).
@@ -296,7 +299,7 @@ func getApp(c *Command, ctx *Context) error {
 func _getApp(ctx *Context, args *baseAppArgs) (*appData, error) {
 	var req *client.Request
 	if args.id > 0 {
-		req = ctx.Client.Get(baseApiPath[keyApp] + "/" + strconv.FormatUint(args.id, 10))
+		req = ctx.Client.Get(getUrlforAppId(args.id))
 	} else {
 		req = ctx.Client.Get(baseApiPath[keyApp]).Param("name", args.name)
 	}
@@ -341,7 +344,7 @@ func newDeleteAppCmd(ctx *Context) *Command {
 
 func deleteApp(c *Command, ctx *Context) error {
 	args := c.Data.(*deleteAppArgs)
-	req := ctx.Client.Delete(baseApiPath[keyApp] + "/" + strconv.FormatUint(args.id, 10))
+	req := ctx.Client.Delete(getUrlforAppId(args.id))
 
 	_, err := req.Expect(204).
 		ProjectToken(ctx.Profile, args.projectId).Execute()
@@ -465,7 +468,7 @@ func _updateAppStatus(ctx *Context, args *baseAppArgs, status string) error {
 
 	var req *client.Request
 	if args.id > 0 {
-		req = ctx.Client.Put(baseApiPath[keyApp] + "/" + strconv.FormatUint(args.id, 10))
+		req = ctx.Client.Put(getUrlforAppId(args.id))
 	} else {
 		req = ctx.Client.Put(baseApiPath[keyApp]).Param("name", args.name)
 	}

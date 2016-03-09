@@ -3,7 +3,6 @@ package command
 import (
 	"flag"
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -21,6 +20,10 @@ func init() {
 
 func (c *Command) newFlagSetTrigger(cmd string) *flag.FlagSet {
 	return c.NewFlagSet(flagSetNames["trigger"] + " " + cmd)
+}
+
+func getUrlForTriggerId(id uint64) string {
+	return getUrlForResource(baseApiPath["trigger"], id)
 }
 
 // NewTriggersCommand returns the base 'trigger' command.
@@ -161,7 +164,7 @@ func (a *triggerBaseArgs) IsValid() bool {
 
 func (a *triggerBaseArgs) getApiPath() string {
 	if a.triggerId > 0 {
-		return baseApiPath["trigger"] + "/" + strconv.FormatUint(a.triggerId, 10)
+		return getUrlForTriggerId(a.triggerId)
 	}
 	return baseApiPath["trigger"]
 }

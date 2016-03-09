@@ -168,3 +168,7 @@ func promptStdIn(prompt string) (string, error) {
 	}
 	return string(line), nil
 }
+
+func getUrlForResource(apiPath string, id uint64) string {
+	return fmt.Sprintf("%s/%d", apiPath, id)
+}
