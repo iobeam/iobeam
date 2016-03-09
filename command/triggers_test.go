@@ -181,25 +181,25 @@ func TestTriggerDataValidity(t *testing.T) {
 
 func TestHTTPDataValidity(t *testing.T) {
 	cases := []struct {
-		in   *httpData
+		in   *httpActionData
 		want bool
 	}{
 		{
-			in: &httpData{
+			in: &httpActionData{
 				URL:         "", // must have len > 0
 				ContentType: "text/plain",
 			},
 			want: false,
 		},
 		{
-			in: &httpData{
+			in: &httpActionData{
 				URL:         "iobeam.com",
 				ContentType: "",
 			},
 			want: false,
 		},
 		{
-			in: &httpData{
+			in: &httpActionData{
 				URL:         "iobeam.com",
 				ContentType: "text/plain",
 			},
@@ -216,11 +216,11 @@ func TestHTTPDataValidity(t *testing.T) {
 
 func TestMQTTDataValidity(t *testing.T) {
 	cases := []struct {
-		in   *mqttData
+		in   *mqttActionData
 		want bool
 	}{
 		{
-			in: &mqttData{
+			in: &mqttActionData{
 				Broker:  "iobeam.com",
 				Topic:   "good topic",
 				Payload: "message",
@@ -228,7 +228,7 @@ func TestMQTTDataValidity(t *testing.T) {
 			want: true,
 		},
 		{
-			in: &mqttData{
+			in: &mqttActionData{
 				Broker:  "", // must have len > 0
 				Topic:   "good topic",
 				Payload: "message",
@@ -236,7 +236,7 @@ func TestMQTTDataValidity(t *testing.T) {
 			want: false,
 		},
 		{
-			in: &mqttData{
+			in: &mqttActionData{
 				Broker:  "iobeam.com",
 				Topic:   "", // must have len > 0
 				Payload: "message",
@@ -244,7 +244,7 @@ func TestMQTTDataValidity(t *testing.T) {
 			want: false,
 		},
 		{
-			in: &mqttData{
+			in: &mqttActionData{
 				Broker:  "iobeam.com",
 				Topic:   "good topic",
 				Payload: "", // must have len > 0
@@ -262,11 +262,11 @@ func TestMQTTDataValidity(t *testing.T) {
 
 func TestSMSDataValidity(t *testing.T) {
 	cases := []struct {
-		in   *smsData
+		in   *smsActionData
 		want bool
 	}{
 		{
-			in: &smsData{
+			in: &smsActionData{
 				AccountSID: "my id",
 				AuthToken:  "my token",
 				From:       "0000000000",
@@ -276,7 +276,7 @@ func TestSMSDataValidity(t *testing.T) {
 			want: true,
 		},
 		{
-			in: &smsData{
+			in: &smsActionData{
 				AccountSID: "", // must have len > 0
 				AuthToken:  "my token",
 				From:       "0000000000",
@@ -286,7 +286,7 @@ func TestSMSDataValidity(t *testing.T) {
 			want: false,
 		},
 		{
-			in: &smsData{
+			in: &smsActionData{
 				AccountSID: "my id",
 				AuthToken:  "", // must have len > 0
 				From:       "0000000000",
@@ -296,7 +296,7 @@ func TestSMSDataValidity(t *testing.T) {
 			want: false,
 		},
 		{
-			in: &smsData{
+			in: &smsActionData{
 				AccountSID: "my id",
 				AuthToken:  "my token",
 				From:       "", // must have len > 0
@@ -306,7 +306,7 @@ func TestSMSDataValidity(t *testing.T) {
 			want: false,
 		},
 		{
-			in: &smsData{
+			in: &smsActionData{
 				AccountSID: "my id",
 				AuthToken:  "my token",
 				From:       "0000000000",
@@ -316,7 +316,7 @@ func TestSMSDataValidity(t *testing.T) {
 			want: false,
 		},
 		{
-			in: &smsData{
+			in: &smsActionData{
 				AccountSID: "my id",
 				AuthToken:  "my token",
 				From:       "0000000000",

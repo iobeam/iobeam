@@ -378,21 +378,21 @@ func (d *triggerData) setCommonFlags(flags *flag.FlagSet, ctx *Context) {
 // HTTP data structions and functions
 //
 
-type httpData struct {
+type httpActionData struct {
 	URL         string `json:"url"`
 	Payload     string `json:"payload"`
 	AuthHeader  string `json:"auth_header"`
 	ContentType string `json:"content_type"`
 }
 
-func (d *httpData) isHTTPDataValid() bool {
+func (d *httpActionData) isHTTPDataValid() bool {
 	return len(d.URL) > 0 && len(d.ContentType) > 0
 }
 
 type httpConfigArgs struct {
 	triggerData
 	minDelay uint64
-	data     httpData
+	data     httpActionData
 }
 
 func (c *httpConfigArgs) IsValid() bool {
@@ -434,7 +434,7 @@ func newHTTPConfig(c *Command, ctx *Context) error {
 // MQTT data structures and functions
 //
 
-type mqttData struct {
+type mqttActionData struct {
 	Broker   string `json:"broker_addr"`
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -443,14 +443,14 @@ type mqttData struct {
 	Payload  string `json:"payload"`
 }
 
-func (d *mqttData) isMQTTDataValid() bool {
+func (d *mqttActionData) isMQTTDataValid() bool {
 	return len(d.Broker) > 0 && len(d.Topic) > 0 && len(d.Payload) > 0
 }
 
 type mqttConfigArgs struct {
 	triggerData
 	minDelay uint64
-	data     mqttData
+	data     mqttActionData
 }
 
 func (c *mqttConfigArgs) IsValid() bool {
@@ -494,7 +494,7 @@ func newMQTTConfig(c *Command, ctx *Context) error {
 // SMS data structures and functions
 //
 
-type smsData struct {
+type smsActionData struct {
 	AccountSID string `json:"account_sid"`
 	AuthToken  string `json:"auth_token"`
 	From       string `json:"from"`
@@ -502,14 +502,14 @@ type smsData struct {
 	Payload    string `json:"message"`
 }
 
-func (d *smsData) isSMSDataValid() bool {
+func (d *smsActionData) isSMSDataValid() bool {
 	return len(d.AccountSID) > 0 && len(d.AuthToken) > 0 && len(d.From) > 0 && len(d.To) > 0 && len(d.Payload) > 0
 }
 
 type smsConfigArgs struct {
 	triggerData
 	minDelay uint64
-	data     smsData
+	data     smsActionData
 }
 
 func (c *smsConfigArgs) IsValid() bool {
