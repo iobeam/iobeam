@@ -11,27 +11,39 @@ const (
 	descCreateTriggerName = "Name of the new trigger."
 	descCreateDataExpiry  = "Time (in milliseconds) after which data is considered too old to fire trigger (0 = never too old)."
 	descCreateMinDelay    = "Minimum time (in milliseconds) between successive trigger firings (used to rate limit trigger events)."
+	descCreateTypeFmt     = "Create a new trigger with an %s action."
+
+	descAddActionTypeFmt = "Add new %s action to a trigger."
+
+	keyTrigger = "trigger"
 )
 
-var actionTypes = []string{"email", "http", "mqtt", "sms"}
+// actionTypes is a map from an action type (used in commands) to another string
+// that is used as part of command usage text.
+var actionTypes = map[string]string{
+	"email": "email",
+	"http":  "HTTP",
+	"mqtt":  "MQTT",
+	"sms":   "Twilio SMS",
+}
 
 func init() {
-	flagSetNames["trigger"] = "trigger"
-	baseApiPath["trigger"] = "/v1/triggers"
+	flagSetNames[keyTrigger] = "iobeam trigger"
+	baseApiPath[keyTrigger] = "/v1/triggers"
 }
 
 func (c *Command) newFlagSetTrigger(cmd string) *flag.FlagSet {
-	return c.NewFlagSet(flagSetNames["trigger"] + " " + cmd)
+	return c.NewFlagSet(flagSetNames[keyTrigger] + " " + cmd)
 }
 
 func getUrlForTriggerId(id uint64) string {
-	return getUrlForResource(baseApiPath["trigger"], id)
+	return getUrlForResource(baseApiPath[keyTrigger], id)
 }
 
 // NewTriggersCommand returns the base 'trigger' command.
 func NewTriggersCommand(ctx *Context) *Command {
 	cmd := &Command{
-		Name:  flagSetNames["trigger"],
+		Name:  flagSetNames[keyTrigger],
 		Usage: "Commands for managing triggers.",
 		SubCommands: Mux{
 			"add-action": newAddActionTriggerCommand(ctx),
@@ -42,7 +54,7 @@ func NewTriggersCommand(ctx *Context) *Command {
 			"test":       newTestTriggerCommand(ctx),
 		},
 	}
-	cmd.NewFlagSet("iobeam " + flagSetNames["trigger"])
+	cmd.NewFlagSet(flagSetNames[keyTrigger])
 
 	return cmd
 }
@@ -123,7 +135,7 @@ func newListTriggersCommand(ctx *Context) *Command {
 	a := new(triggerListArgs)
 	cmd := &Command{
 		Name:    cmdStr,
-		ApiPath: baseApiPath["trigger"],
+		ApiPath: baseApiPath[keyTrigger],
 		Usage:   "Get all triggers for a project",
 		Data:    a,
 		Action:  getAllTriggers,
@@ -169,7 +181,7 @@ func (a *triggerBaseArgs) getApiPath() string {
 	if a.triggerId > 0 {
 		return getUrlForTriggerId(a.triggerId)
 	}
-	return baseApiPath["trigger"]
+	return baseApiPath[keyTrigger]
 }
 
 // Single get data and functions
@@ -304,7 +316,7 @@ func newTestTriggerCommand(ctx *Context) *Command {
 	a := new(triggerTestArgs)
 	cmd := &Command{
 		Name:    cmdStr,
-		ApiPath: baseApiPath["trigger"] + "/events/test",
+		ApiPath: baseApiPath[keyTrigger] + "/events/test",
 		Usage:   "Test that a trigger works.",
 		Data:    a,
 		Action:  testTrigger,
@@ -348,7 +360,7 @@ func newMuxOnActionTypeCommand(ctx *Context, action, usage string, fn actionFunc
 		Usage:       usage,
 		SubCommands: Mux{},
 	}
-	for _, t := range actionTypes {
+	for t := range actionTypes {
 		cmd.SubCommands[t] = fn(ctx, t)
 	}
 	cmd.newFlagSetTrigger(action)
@@ -357,11 +369,11 @@ func newMuxOnActionTypeCommand(ctx *Context, action, usage string, fn actionFunc
 }
 
 func newCreateTriggerCommand(ctx *Context) *Command {
-	return newMuxOnActionTypeCommand(ctx, "create", "Commands for adding new triggers.", newCreateTypeCommand)
+	return newMuxOnActionTypeCommand(ctx, "create", "Create a new trigger with an action.", newCreateTypeCommand)
 }
 
 func newAddActionTriggerCommand(ctx *Context) *Command {
-	return newMuxOnActionTypeCommand(ctx, "add-action", "Commands for adding actions to triggers.", newAddActionTypeCommand)
+	return newMuxOnActionTypeCommand(ctx, "add-action", "Add an action to a trigger.", newAddActionTypeCommand)
 }
 
 // Create data and functions
@@ -390,31 +402,15 @@ func (a *createArgs) setCommonFlags(flags *flag.FlagSet, ctx *Context) {
 }
 
 func newCreateTypeCommand(ctx *Context, action string) *Command {
-	var c *createArgs
-	var desc string
-	switch action {
-	case "email":
-		c = &createArgs{data: &emailActionData{To: make([]string, 1)}}
-		desc = "Create a new email trigger."
-	case "http":
-		c = &createArgs{data: &httpActionData{}}
-		desc = "Create a new HTTP trigger."
-	case "mqtt":
-		c = &createArgs{data: &mqttActionData{}}
-		desc = "Create a new MQTT trigger."
-	case "sms":
-		c = &createArgs{data: &smsActionData{}}
-		desc = "Create a new Twilio SMS trigger."
-	default:
-		panic("Unknown action type")
-	}
+	c := &createArgs{data: getActionArgs(action)}
+	desc := fmt.Sprintf(descCreateTypeFmt, actionTypes[action])
 	return newGenericTriggerCommand(ctx, c, action, desc)
 }
 
 func newGenericTriggerCommand(ctx *Context, c *createArgs, name, desc string) *Command {
 	cmd := &Command{
 		Name:    name,
-		ApiPath: baseApiPath["trigger"],
+		ApiPath: baseApiPath[keyTrigger],
 		Usage:   desc,
 		Data:    c,
 		Action:  createTrigger,
@@ -428,22 +424,9 @@ func newGenericTriggerCommand(ctx *Context, c *createArgs, name, desc string) *C
 
 func createTrigger(c *Command, ctx *Context) error {
 	args := c.Data.(*createArgs)
-	actionType := ""
-	switch args.data.(type) {
-	default:
-		return fmt.Errorf("Unknown action type")
-	case *emailActionData:
-		actionType = "email"
-	case *httpActionData:
-		actionType = "http"
-	case *mqttActionData:
-		actionType = "mqtt"
-	case *smsActionData:
-		actionType = "sms"
-	}
 
 	actions := []triggerAction{
-		{Type: actionType, MinDelay: args.minDelay, Args: args.data},
+		{Type: getActionType(args.data), MinDelay: args.minDelay, Args: args.data},
 	}
 
 	body := newTrigger(args.triggerData.TriggerName, args.triggerData.ProjectId, args.triggerData.DataExpiry, actions)
@@ -474,31 +457,14 @@ func (a *addActionArgs) IsValid() bool {
 
 func (a *addActionArgs) setCommonFlags(flags *flag.FlagSet, ctx *Context) {
 	flags.Uint64Var(&a.triggerBaseArgs.projectId, "projectId", ctx.Profile.ActiveProject, descCreateProjectId)
-	flags.Uint64Var(&a.triggerBaseArgs.triggerId, "id", 0, "ID of trigger to update (this or -name is REQUIRED).")
-	flags.StringVar(&a.triggerBaseArgs.triggerName, "name", "", "Name of trigger to update (this or -name is REQUIRED).")
+	flags.StringVar(&a.triggerBaseArgs.triggerName, "triggerName", "", "Name of trigger to add action to")
 
 	flags.Uint64Var(&a.minDelay, "minDelay", 0, descCreateMinDelay)
 }
 
 func newAddActionTypeCommand(ctx *Context, action string) *Command {
-	var c *addActionArgs
-	var desc string
-	switch action {
-	case "email":
-		c = &addActionArgs{data: &emailActionData{To: make([]string, 1)}}
-		desc = "Add new email action to trigger"
-	case "http":
-		c = &addActionArgs{data: &httpActionData{}}
-		desc = "Add new HTTP action to trigger"
-	case "mqtt":
-		c = &addActionArgs{data: &mqttActionData{}}
-		desc = "Add new MQTT action to trigger"
-	case "sms":
-		c = &addActionArgs{data: &smsActionData{}}
-		desc = "Add new Twilio SMS action to trigger"
-	default:
-		panic("Unknown action type")
-	}
+	c := &addActionArgs{data: getActionArgs(action)}
+	desc := fmt.Sprintf(descAddActionTypeFmt, actionTypes[action])
 	return newGenericAddActionTriggerCommand(ctx, c, action, desc)
 }
 
@@ -524,23 +490,10 @@ func addAction(c *Command, ctx *Context) error {
 		return err
 	}
 
-	actionType := ""
-	switch args.data.(type) {
-	default:
-		return fmt.Errorf("Unknown action type")
-	case *emailActionData:
-		actionType = "email"
-	case *httpActionData:
-		actionType = "http"
-	case *mqttActionData:
-		actionType = "mqtt"
-	case *smsActionData:
-		actionType = "sms"
-	}
-
-	trigger.Actions = append(trigger.Actions, triggerAction{Type: actionType, MinDelay: args.minDelay, Args: args.data})
+	newAction := triggerAction{Type: getActionType(args.data), MinDelay: args.minDelay, Args: args.data}
+	trigger.Actions = append(trigger.Actions, newAction)
 	_, err = ctx.Client.
-		Put(baseApiPath["trigger"]+"/"+strconv.FormatUint(trigger.TriggerId, 10)).
+		Put(getUrlForTriggerId(trigger.TriggerId)).
 		Expect(200).
 		ProjectToken(ctx.Profile, trigger.ProjectId).
 		Body(trigger).
@@ -552,6 +505,36 @@ func addAction(c *Command, ctx *Context) error {
 }
 
 // ----- INDIVIDUAL ACTION TYPES BELOW ----- //
+
+func getActionArgs(action string) actionArgs {
+	switch action {
+	case "email":
+		return &emailActionData{To: make([]string, 1)}
+	case "http":
+		return &httpActionData{}
+	case "mqtt":
+		return &mqttActionData{}
+	case "sms":
+		return &smsActionData{}
+	default:
+		panic("Unknown action type")
+	}
+}
+
+func getActionType(a actionArgs) string {
+	switch a.(type) {
+	case *emailActionData:
+		return "email"
+	case *httpActionData:
+		return "http"
+	case *mqttActionData:
+		return "mqtt"
+	case *smsActionData:
+		return "sms"
+	default:
+		panic("Unknown action type")
+	}
+}
 
 //
 // HTTP data structions and functions
