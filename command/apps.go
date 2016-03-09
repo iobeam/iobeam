@@ -9,14 +9,6 @@ import (
 )
 
 const (
-	cmdGet    = "get"
-	cmdDelete = "delete"
-	cmdLaunch = "create"
-	cmdList   = "list"
-	cmdStart  = "start"
-	cmdStop   = "stop"
-	cmdUpdate = "update"
-
 	appStatusRunning = "RUNNING"
 	appStatusStopped = "STOPPED"
 
@@ -88,13 +80,13 @@ func NewAppsCommand(ctx *Context) *Command {
 		Name:  keyApp,
 		Usage: "Commands for managing apps.",
 		SubCommands: Mux{
-			cmdLaunch: newLaunchAppCmd(ctx),
-			cmdDelete: newDeleteAppCmd(ctx),
-			cmdGet:    newGetAppCmd(ctx),
-			cmdList:   newListAppsCmd(ctx),
-			cmdStart:  newStartAppCmd(ctx),
-			cmdStop:   newStopAppCmd(ctx),
-			cmdUpdate: newUpdateAppCmd(ctx),
+			"create": newLaunchAppCmd(ctx),
+			"delete": newDeleteAppCmd(ctx),
+			"get":    newGetAppCmd(ctx),
+			"list":   newListAppsCmd(ctx),
+			"start":  newStartAppCmd(ctx),
+			"stop":   newStopAppCmd(ctx),
+			"update": newUpdateAppCmd(ctx),
 		},
 	}
 	cmd.NewFlagSet(flagSetNames[keyApp])
@@ -113,16 +105,17 @@ func (a *launchAppArgs) IsValid() bool {
 }
 
 func newLaunchAppCmd(ctx *Context) *Command {
+	cmdStr := "create"
 	args := new(launchAppArgs)
 
 	cmd := &Command{
-		Name:    cmdLaunch,
+		Name:    cmdStr,
 		ApiPath: baseApiPath[keyApp],
 		Usage:   "Create (and launch) a Spark app.",
 		Data:    args,
 		Action:  launchApp,
 	}
-	flags := cmd.newFlagSetApp(cmdLaunch)
+	flags := cmd.newFlagSetApp(cmdStr)
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID (defaults to active project).")
 	flags.StringVar(&args.name, "name", "", "Name of the app. (REQUIRED)")
 	flags.StringVar(&args.path, "path", "", "Path to app to upload. (REQUIRED)")
@@ -182,16 +175,17 @@ func (a *updateAppArgs) IsValid() bool {
 }
 
 func newUpdateAppCmd(ctx *Context) *Command {
+	cmdStr := "update"
 	args := new(updateAppArgs)
 
 	cmd := &Command{
-		Name: cmdUpdate,
+		Name: cmdStr,
 		// ApiPath determined by flags
 		Usage:  "Update an app, including replacing the JAR.",
 		Data:   args,
 		Action: updateApp,
 	}
-	flags := cmd.newFlagSetApp(cmdUpdate)
+	flags := cmd.newFlagSetApp(cmdStr)
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID (defaults to active project).")
 	flags.Uint64Var(&args.id, "id", 0, "App ID to update. (REQUIRED)")
 	flags.StringVar(&args.name, "name", "", "Name of the app.")
@@ -269,16 +263,17 @@ func (a *getAppArgs) IsValid() bool {
 }
 
 func newGetAppCmd(ctx *Context) *Command {
+	cmdStr := "get"
 	args := new(getAppArgs)
 
 	cmd := &Command{
-		Name: cmdGet,
+		Name: cmdStr,
 		// ApiPath determined by flags
 		Usage:  "Get app information.",
 		Data:   args,
 		Action: getApp,
 	}
-	flags := cmd.newFlagSetApp(cmdGet)
+	flags := cmd.newFlagSetApp(cmdStr)
 	flags.Uint64Var(&args.id, "id", 0, "App ID to get (this or -name is required)")
 	flags.StringVar(&args.name, "name", "", "App name to get (this or -id is required)")
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject,
@@ -325,16 +320,17 @@ func (a *deleteAppArgs) IsValid() bool {
 }
 
 func newDeleteAppCmd(ctx *Context) *Command {
+	cmdStr := "delete"
 	args := new(deleteAppArgs)
 
 	cmd := &Command{
-		Name: cmdDelete,
+		Name: cmdStr,
 		// ApiPath determined by flags
 		Usage:  "Delete an app.",
 		Data:   args,
 		Action: deleteApp,
 	}
-	flags := cmd.newFlagSetApp(cmdDelete)
+	flags := cmd.newFlagSetApp(cmdStr)
 	flags.Uint64Var(&args.id, "id", 0, "App ID to delete (REQUIRED)")
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject,
 		"Project ID to delete from (defaults to active project)")
@@ -366,16 +362,17 @@ func (a *listAppsArgs) IsValid() bool {
 }
 
 func newListAppsCmd(ctx *Context) *Command {
+	cmdStr := "list"
 	args := new(listAppsArgs)
 
 	cmd := &Command{
-		Name:    cmdList,
+		Name:    cmdStr,
 		ApiPath: baseApiPath[keyApp],
 		Usage:   "List apps for a project.",
 		Data:    args,
 		Action:  listApps,
 	}
-	flags := cmd.newFlagSetApp(cmdList)
+	flags := cmd.newFlagSetApp(cmdStr)
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID to list from (defaults to active project).")
 
 	return cmd
@@ -412,56 +409,54 @@ func listApps(c *Command, ctx *Context) error {
 	return err
 }
 
-func newStartAppCmd(ctx *Context) *Command {
-	args := new(baseAppArgs)
+type appStartOrStopArgs struct {
+	baseAppArgs
+	isStart bool
+}
+
+func (a *appStartOrStopArgs) IsValid() bool {
+	return a.baseAppArgs.IsValid()
+}
+
+func newStartOrStopAppCmd(ctx *Context, isStart bool) *Command {
+	args := &appStartOrStopArgs{isStart: isStart}
+	var cmdStr string
+	var desc string
+	if isStart {
+		cmdStr = "start"
+		desc = "Start an app by ID."
+	} else {
+		cmdStr = "stop"
+		desc = "Stop an app by ID."
+	}
 
 	cmd := &Command{
-		Name: cmdStart,
+		Name: cmdStr,
 		// ApiPath determined by flags
-		Usage:  "Start an app by name/id.",
+		Usage:  desc,
 		Data:   args,
-		Action: startApp,
+		Action: updateAppStatus,
 	}
-	flags := cmd.newFlagSetApp(cmdStart)
-	flags.Uint64Var(&args.id, "id", 0, "App ID to start (REQUIRED).")
-	//flags.StringVar(&args.name, "name", "", "App name to start (this or -id is required)")
+	flags := cmd.newFlagSetApp(cmdStr)
+	flags.Uint64Var(&args.id, "id", 0, "App ID (REQUIRED).")
+	//flags.StringVar(&args.name, "name", "", "App name (this or -id is required)")
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject,
 		"Project ID of app (defaults to active project)")
 
 	return cmd
 }
 
-func startApp(c *Command, ctx *Context) error {
-	args := c.Data.(*baseAppArgs)
-	return _updateAppStatus(ctx, args, appStatusRunning)
+func newStartAppCmd(ctx *Context) *Command {
+	return newStartOrStopAppCmd(ctx, true /* isStart */)
 }
 
 func newStopAppCmd(ctx *Context) *Command {
-	args := new(baseAppArgs)
-
-	cmd := &Command{
-		Name: cmdStop,
-		// ApiPath determined by flags
-		Usage:  "Stop an app by name/id.",
-		Data:   args,
-		Action: stopApp,
-	}
-	flags := cmd.newFlagSetApp(cmdStart)
-	flags.Uint64Var(&args.id, "id", 0, "App ID to stop (REQUIRED).")
-	//flags.StringVar(&args.name, "name", "", "App name to stop (this or -id is required)")
-	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject,
-		"Project ID of app (defaults to active project)")
-
-	return cmd
+	return newStartOrStopAppCmd(ctx, false /* isStart */)
 }
 
-func stopApp(c *Command, ctx *Context) error {
-	args := c.Data.(*baseAppArgs)
-	return _updateAppStatus(ctx, args, appStatusStopped)
-}
-
-func _updateAppStatus(ctx *Context, args *baseAppArgs, status string) error {
-	app, err := _getApp(ctx, args)
+func updateAppStatus(c *Command, ctx *Context) error {
+	args := c.Data.(*appStartOrStopArgs)
+	app, err := _getApp(ctx, &args.baseAppArgs)
 	if err != nil {
 		return err
 	}
@@ -473,7 +468,11 @@ func _updateAppStatus(ctx *Context, args *baseAppArgs, status string) error {
 		req = ctx.Client.Put(baseApiPath[keyApp]).Param("name", args.name)
 	}
 
-	app.RequestedStatus = status
+	if args.isStart {
+		app.RequestedStatus = appStatusRunning
+	} else {
+		app.RequestedStatus = appStatusStopped
+	}
 	rsp, err := req.Expect(200).
 		ProjectToken(ctx.Profile, args.projectId).
 		Body(app).
