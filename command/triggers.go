@@ -46,12 +46,13 @@ func NewTriggersCommand(ctx *Context) *Command {
 		Name:  flagSetNames[keyTrigger],
 		Usage: "Commands for managing triggers.",
 		SubCommands: Mux{
-			"add-action": newAddActionTriggerCommand(ctx),
-			"create":     newCreateTriggerCommand(ctx),
-			"delete":     newDeleteTriggerCommand(ctx),
-			"get":        newGetTriggerCommand(ctx),
-			"list":       newListTriggersCommand(ctx),
-			"test":       newTestTriggerCommand(ctx),
+			"add-action":    newAddActionTriggerCommand(ctx),
+			"create":        newCreateTriggerCommand(ctx),
+			"delete":        newDeleteTriggerCommand(ctx),
+			"get":           newGetTriggerCommand(ctx),
+			"list":          newListTriggersCommand(ctx),
+			"remove-action": newRemoveActionTriggerCommand(ctx),
+			"test":          newTestTriggerCommand(ctx),
 		},
 	}
 	cmd.NewFlagSet(flagSetNames[keyTrigger])
@@ -350,6 +351,69 @@ func testTrigger(c *Command, ctx *Context) error {
 	return err
 }
 
+type triggerRemoveActionArgs struct {
+	triggerBaseArgs
+	index uint64
+}
+
+func (a *triggerRemoveActionArgs) IsValid() bool {
+	return a.triggerBaseArgs.IsValid() && a.index > 0
+}
+
+func newRemoveActionTriggerCommand(ctx *Context) *Command {
+	cmdStr := "remove-action"
+	a := new(triggerRemoveActionArgs)
+	cmd := &Command{
+		Name: cmdStr,
+		// ApiPath determined by flags
+		Usage:  "Remove action from a trigger.",
+		Data:   a,
+		Action: delAction,
+	}
+
+	flags := cmd.newFlagSetTrigger(cmdStr)
+	flags.Uint64Var(&a.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID of trigger.")
+	flags.Uint64Var(&a.triggerId, "triggerId", 0, "Trigger ID containing the action (either this or -name must be set).")
+	flags.StringVar(&a.triggerName, "triggerName", "", "Trigger name containing the action (either this or -id must be set).")
+	flags.Uint64Var(&a.index, "num", 0, "Action number to remove (see output of 'iobeam trigger list').")
+
+	return cmd
+}
+
+func _putTrigger(ctx *Context, trigger *fullTrigger) error {
+	_, err := ctx.Client.
+		Put(getUrlForTriggerId(trigger.TriggerId)).
+		Expect(200).
+		ProjectToken(ctx.Profile, trigger.ProjectId).
+		Body(trigger).
+		Execute()
+
+	return err
+}
+
+func delAction(c *Command, ctx *Context) error {
+	args := c.Data.(*triggerRemoveActionArgs)
+	trigger, err := _getTrigger(ctx, &args.triggerBaseArgs)
+	if err != nil {
+		return err
+	}
+
+	idx := args.index - 1 // make index 0-based
+	lenActions := uint64(len(trigger.Actions))
+	if idx > lenActions {
+		return fmt.Errorf("Invalid action index: %d (only %d actions)", args.index, lenActions)
+	}
+
+	trigger.Actions = append(trigger.Actions[:idx], trigger.Actions[idx+1:]...)
+	err = _putTrigger(ctx, trigger)
+
+	if err == nil {
+		fmt.Println("Action successfully removed from trigger.")
+	}
+
+	return err
+}
+
 // actionFunc is a function that generates a command that is based on the type
 // of trigger action given.
 type actionFunc func(*Context, string) *Command
@@ -492,15 +556,12 @@ func addAction(c *Command, ctx *Context) error {
 
 	newAction := triggerAction{Type: getActionType(args.data), MinDelay: args.minDelay, Args: args.data}
 	trigger.Actions = append(trigger.Actions, newAction)
-	_, err = ctx.Client.
-		Put(getUrlForTriggerId(trigger.TriggerId)).
-		Expect(200).
-		ProjectToken(ctx.Profile, trigger.ProjectId).
-		Body(trigger).
-		Execute()
+	err = _putTrigger(ctx, trigger)
+
 	if err == nil {
 		fmt.Println("Action successfully added to trigger.")
 	}
+
 	return err
 }
 
