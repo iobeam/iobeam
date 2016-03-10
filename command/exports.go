@@ -15,21 +15,17 @@ const (
 	opMin   = "min"
 	opMax   = "max"
 	opMean  = "mean"
-)
 
-const (
 	timeFmtSec    = "sec"
 	timeFmtMsec   = "msec"
 	timeFmtUsec   = "usec"
 	timeFmtStruct = "timeval"
-)
 
-const (
 	outputJson = "json"
 	outputCsv  = "csv"
-)
 
-const maxDurationStr = "24h"
+	maxDurationStr = "24h"
+)
 
 var ops = []string{opSum, opCount, opMin, opMax, opMean}
 var timeFmts = []string{timeFmtSec, timeFmtMsec, timeFmtUsec, timeFmtStruct}
@@ -53,15 +49,6 @@ type exportData struct {
 
 	operator string
 	groupBy  string
-}
-
-func isInList(item string, list []string) bool {
-	for _, i := range list {
-		if i == item {
-			return true
-		}
-	}
-	return false
 }
 
 func (e *exportData) IsValid() bool {

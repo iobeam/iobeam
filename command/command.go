@@ -158,6 +158,16 @@ func (c *Command) parseFlags(ctx *Context) {
 	}
 }
 
+// isInList looks for a string in a list of strings.
+func isInList(item string, list []string) bool {
+	for _, i := range list {
+		if i == item {
+			return true
+		}
+	}
+	return false
+}
+
 // FIXME: allow non-echoing for passwords
 func promptStdIn(prompt string) (string, error) {
 	bio := bufio.NewReader(os.Stdin)

@@ -3,6 +3,7 @@ package command
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -10,14 +11,26 @@ import (
 )
 
 const (
-	flagSetFile     = "iobeam file"
-	baseApiPathFile = "/v1/files"
+	keyFile = "file"
 )
+
+func init() {
+	flagSetNames[keyFile] = "iobeam file"
+	baseApiPath[keyFile] = "/v1/files"
+}
+
+func (c *Command) newFlagSetFile() *flag.FlagSet {
+	return c.NewFlagSet(flagSetNames[keyFile] + " " + c.Name)
+}
+
+func getUrlForFileName(name string) string {
+	return fmt.Sprintf("%s/%s", baseApiPath[keyFile], name)
+}
 
 // NewFilesCommand returns the base 'device' command.
 func NewFilesCommand(ctx *Context) *Command {
 	cmd := &Command{
-		Name:  "file",
+		Name:  keyFile,
 		Usage: "Commands for managing files on iobeam (e.g. app JARs).",
 		SubCommands: Mux{
 			"delete": newDeleteFileCmd(ctx),
@@ -25,7 +38,7 @@ func NewFilesCommand(ctx *Context) *Command {
 			"upload": newUploadFileCmd(ctx),
 		},
 	}
-	cmd.NewFlagSet(flagSetFile)
+	cmd.NewFlagSet(flagSetNames[keyFile])
 
 	return cmd
 }
@@ -43,13 +56,13 @@ func newUploadFileCmd(ctx *Context) *Command {
 	args := new(uploadFileArgs)
 
 	cmd := &Command{
-		Name:    "upload",
-		ApiPath: baseApiPathFile,
-		Usage:   "Upload a file to iobeam.",
-		Data:    args,
-		Action:  uploadFile,
+		Name: "upload",
+		//ApiPath determined by flags
+		Usage:  "Upload a file to iobeam.",
+		Data:   args,
+		Action: uploadFile,
 	}
-	flags := cmd.NewFlagSet(flagSetFile + " upload")
+	flags := cmd.newFlagSetFile()
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "The ID of the project to upload the file to (defaults to active project).")
 	flags.StringVar(&args.path, "path", "", "Path to file to upload.")
 
@@ -96,7 +109,7 @@ func _uploadFile(ctx *Context, args *uploadFileArgs) (string, error) {
 	}
 
 	_, err = ctx.Client.
-		Put(baseApiPathFile+"/"+filepath.Base(args.path)).
+		Put(getUrlForFileName(filepath.Base(args.path))).
 		Expect(201).
 		ProjectToken(ctx.Profile, args.projectId).
 		Param("checksum", calculatedChecksum).
@@ -125,13 +138,13 @@ func newDeleteFileCmd(ctx *Context) *Command {
 	args := new(deleteFileArgs)
 
 	cmd := &Command{
-		Name:    "delete",
-		ApiPath: baseApiPathFile,
-		Usage:   "Delete a file from iobeam.",
-		Data:    args,
-		Action:  deleteFile,
+		Name: "delete",
+		//ApiPath determined by flags
+		Usage:  "Delete a file from iobeam.",
+		Data:   args,
+		Action: deleteFile,
 	}
-	flags := cmd.NewFlagSet(flagSetFile + " delete")
+	flags := cmd.newFlagSetFile()
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "The ID of the project that contains the file (defaults to active project).")
 	flags.StringVar(&args.filename, "name", "", "Name of the file to delete.")
 
@@ -142,7 +155,7 @@ func deleteFile(c *Command, ctx *Context) error {
 	args := c.Data.(*deleteFileArgs)
 
 	_, err := ctx.Client.
-		Delete(c.ApiPath+"/"+args.filename).
+		Delete(getUrlForFileName(args.filename)).
 		Expect(204).
 		ProjectToken(ctx.Profile, args.projectId).
 		Execute()
@@ -167,12 +180,12 @@ func newListFilesCmd(ctx *Context) *Command {
 
 	cmd := &Command{
 		Name:    "list",
-		ApiPath: baseApiPathFile,
+		ApiPath: baseApiPath[keyFile],
 		Usage:   "List files for a project.",
 		Data:    args,
 		Action:  listFiles,
 	}
-	flags := cmd.NewFlagSet(flagSetFile + " list")
+	flags := cmd.newFlagSetFile()
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "The ID of the project to get list of files from (defaults to active project).")
 
 	return cmd
