@@ -20,8 +20,8 @@ func init() {
 	baseApiPath[keyApp] = "/v1/apps"
 }
 
-func (c *Command) newFlagSetApp(cmd string) *flag.FlagSet {
-	return c.NewFlagSet(flagSetNames[keyApp] + " " + cmd)
+func (c *Command) newFlagSetApp() *flag.FlagSet {
+	return c.NewFlagSet(flagSetNames[keyApp] + " " + c.Name)
 }
 
 func getUrlforAppId(id uint64) string {
@@ -105,17 +105,16 @@ func (a *launchAppArgs) IsValid() bool {
 }
 
 func newLaunchAppCmd(ctx *Context) *Command {
-	cmdStr := "create"
 	args := new(launchAppArgs)
 
 	cmd := &Command{
-		Name:    cmdStr,
+		Name:    "create",
 		ApiPath: baseApiPath[keyApp],
 		Usage:   "Create (and launch) a Spark app.",
 		Data:    args,
 		Action:  launchApp,
 	}
-	flags := cmd.newFlagSetApp(cmdStr)
+	flags := cmd.newFlagSetApp()
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID (defaults to active project).")
 	flags.StringVar(&args.name, "name", "", "Name of the app. (REQUIRED)")
 	flags.StringVar(&args.path, "path", "", "Path to app to upload. (REQUIRED)")
@@ -175,17 +174,16 @@ func (a *updateAppArgs) IsValid() bool {
 }
 
 func newUpdateAppCmd(ctx *Context) *Command {
-	cmdStr := "update"
 	args := new(updateAppArgs)
 
 	cmd := &Command{
-		Name: cmdStr,
+		Name: "update",
 		// ApiPath determined by flags
 		Usage:  "Update an app, including replacing the JAR.",
 		Data:   args,
 		Action: updateApp,
 	}
-	flags := cmd.newFlagSetApp(cmdStr)
+	flags := cmd.newFlagSetApp()
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID (defaults to active project).")
 	flags.Uint64Var(&args.id, "id", 0, "App ID to update. (REQUIRED)")
 	flags.StringVar(&args.name, "name", "", "Name of the app.")
@@ -263,17 +261,16 @@ func (a *getAppArgs) IsValid() bool {
 }
 
 func newGetAppCmd(ctx *Context) *Command {
-	cmdStr := "get"
 	args := new(getAppArgs)
 
 	cmd := &Command{
-		Name: cmdStr,
+		Name: "get",
 		// ApiPath determined by flags
 		Usage:  "Get app information.",
 		Data:   args,
 		Action: getApp,
 	}
-	flags := cmd.newFlagSetApp(cmdStr)
+	flags := cmd.newFlagSetApp()
 	flags.Uint64Var(&args.id, "id", 0, "App ID to get (this or -name is required)")
 	flags.StringVar(&args.name, "name", "", "App name to get (this or -id is required)")
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject,
@@ -320,17 +317,16 @@ func (a *deleteAppArgs) IsValid() bool {
 }
 
 func newDeleteAppCmd(ctx *Context) *Command {
-	cmdStr := "delete"
 	args := new(deleteAppArgs)
 
 	cmd := &Command{
-		Name: cmdStr,
+		Name: "delete",
 		// ApiPath determined by flags
 		Usage:  "Delete an app.",
 		Data:   args,
 		Action: deleteApp,
 	}
-	flags := cmd.newFlagSetApp(cmdStr)
+	flags := cmd.newFlagSetApp()
 	flags.Uint64Var(&args.id, "id", 0, "App ID to delete (REQUIRED)")
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject,
 		"Project ID to delete from (defaults to active project)")
@@ -362,17 +358,16 @@ func (a *listAppsArgs) IsValid() bool {
 }
 
 func newListAppsCmd(ctx *Context) *Command {
-	cmdStr := "list"
 	args := new(listAppsArgs)
 
 	cmd := &Command{
-		Name:    cmdStr,
+		Name:    "list",
 		ApiPath: baseApiPath[keyApp],
 		Usage:   "List apps for a project.",
 		Data:    args,
 		Action:  listApps,
 	}
-	flags := cmd.newFlagSetApp(cmdStr)
+	flags := cmd.newFlagSetApp()
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID to list from (defaults to active project).")
 
 	return cmd
@@ -437,7 +432,7 @@ func newStartOrStopAppCmd(ctx *Context, isStart bool) *Command {
 		Data:   args,
 		Action: updateAppStatus,
 	}
-	flags := cmd.newFlagSetApp(cmdStr)
+	flags := cmd.newFlagSetApp()
 	flags.Uint64Var(&args.id, "id", 0, "App ID (REQUIRED).")
 	//flags.StringVar(&args.name, "name", "", "App name (this or -id is required)")
 	flags.Uint64Var(&args.projectId, "projectId", ctx.Profile.ActiveProject,
