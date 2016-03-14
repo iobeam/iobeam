@@ -179,6 +179,41 @@ func TestTriggerDataValidity(t *testing.T) {
 	runDataTestCase(t, cases)
 }
 
+func TestEmailDataValidity(t *testing.T) {
+	cases := []struct {
+		in   *emailActionData
+		want bool
+	}{
+		{
+			in: &emailActionData{
+				To:      make([]string, 0), // must have len > 0
+				Payload: "test",
+			},
+			want: false,
+		},
+		{
+			in: &emailActionData{
+				To:      make([]string, 1),
+				Payload: "",
+			},
+			want: false,
+		},
+		{
+			in: &emailActionData{
+				To:      make([]string, 1),
+				Payload: "test",
+			},
+			want: true,
+		},
+	}
+
+	for _, c := range cases {
+		if got := c.in.Valid(); got != c.want {
+			t.Errorf("IsValid(%q) == %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
 func TestHTTPDataValidity(t *testing.T) {
 	cases := []struct {
 		in   *httpActionData
@@ -208,7 +243,7 @@ func TestHTTPDataValidity(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		if got := c.in.isHTTPDataValid(); got != c.want {
+		if got := c.in.Valid(); got != c.want {
 			t.Errorf("IsValid(%q) == %q, want %q", c.in, got, c.want)
 		}
 	}
@@ -254,7 +289,7 @@ func TestMQTTDataValidity(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		if got := c.in.isMQTTDataValid(); got != c.want {
+		if got := c.in.Valid(); got != c.want {
 			t.Errorf("IsValid(%q) == %q, want %q", c.in, got, c.want)
 		}
 	}
@@ -328,7 +363,7 @@ func TestSMSDataValidity(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		if got := c.in.isSMSDataValid(); got != c.want {
+		if got := c.in.Valid(); got != c.want {
 			t.Errorf("IsValid(%q) == %q, want %q", c.in, got, c.want)
 		}
 	}
