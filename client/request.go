@@ -285,7 +285,13 @@ func (r *Request) Execute() (*Response, error) {
 		if err != nil {
 			err = errors.New("Unexpected status code " + httpRsp.Status)
 		} else if len(errorMsg.Errors) > 0 {
-			err = errors.New("Error: " + errorMsg.Errors[0].Message)
+			e1 := errorMsg.Errors[0]
+			errFmt := "Error: %s%s\n"
+			if len(e1.Details) > 0 {
+				err = fmt.Errorf(errFmt, e1.Message, " ("+e1.Details+")")
+			} else {
+				err = fmt.Errorf(errFmt, e1.Message, "")
+			}
 		}
 		return rsp, err
 	}
