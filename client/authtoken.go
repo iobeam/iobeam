@@ -3,8 +3,9 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/iobeam/iobeam/config"
@@ -24,18 +25,21 @@ type AuthToken struct {
 	Admin     bool   `json:",omitempty"`
 }
 
-// see time.Parse docs for why this is the case
-const tokenTimeFormat = "2006-01-02 15:04:05 -0700"
+const (
+	// see time.Parse docs for why this is the case
+	tokenTimeFormat = "2006-01-02 15:04:05 -0700"
 
-const userTokenFile = "token.json"
-const pathSeparator = string(os.PathSeparator)
+	userTokenFile   = "token.json"
+	pathSeparator   = string(os.PathSeparator)
+	prefixProjToken = "proj_"
+)
 
 func userTokenPath(p *config.Profile) string {
-	return p.GetDir() + pathSeparator + userTokenFile
+	return fmt.Sprintf("%s%s%s", p.GetDir(), pathSeparator, userTokenFile)
 }
 
 func projTokenPath(p *config.Profile, id uint64) string {
-	return p.GetDir() + pathSeparator + "proj_" + strconv.FormatUint(id, 10) + ".json"
+	return fmt.Sprintf("%s%s%s%d.json", p.GetDir(), pathSeparator, prefixProjToken, id)
 }
 
 // IsExpired reports whether AuthToken t has expired.
@@ -151,4 +155,21 @@ func ReadUserToken(p *config.Profile) (*AuthToken, error) {
 // if it exists.
 func ReadProjToken(p *config.Profile, id uint64) (*AuthToken, error) {
 	return readToken(projTokenPath(p, id))
+}
+
+func RemoveAllProjTokens(p *config.Profile) error {
+	files, err := ioutil.ReadDir(p.GetDir())
+	if err != nil {
+		return fmt.Errorf("Could not remove project tokens:\n %v\n", err)
+	}
+	for _, f := range files {
+		if strings.HasPrefix(f.Name(), prefixProjToken) {
+			err = os.Remove(p.GetDir() + pathSeparator + f.Name())
+			if err != nil {
+				return fmt.Errorf("Could not remove project tokens:\n %v\n", err)
+			}
+		}
+	}
+
+	return nil
 }

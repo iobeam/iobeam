@@ -81,7 +81,12 @@ func getUserToken(c *Command, ctx *Context) error {
 
 			err := ctx.Profile.UpdateActiveUser(userId, rsp.Email)
 			if err != nil {
-				fmt.Printf("Could not update active user, you may have to login again: %s\n", err)
+				fmt.Printf("Could not update active user, you may have to login again: %v\n", err)
+			}
+
+			err = client.RemoveAllProjTokens(ctx.Profile)
+			if err != nil {
+				fmt.Printf("Could not remove all project tokens:\n")
 			}
 			return err
 		}).Execute()
