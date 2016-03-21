@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/iobeam/iobeam/client"
 )
@@ -11,8 +12,13 @@ import (
 const (
 	appStatusRunning = "RUNNING"
 	appStatusStopped = "STOPPED"
+	appStatusError   = "ERROR"
 
 	keyApp = "app"
+
+	maxStatusTries = 10
+	backOffAmt     = 3
+	backOffMax     = 10
 )
 
 func init() {
@@ -151,14 +157,14 @@ func launchApp(c *Command, ctx *Context) error {
 		ResponseBody(data).
 		ResponseBodyHandler(func(body interface{}) error {
 
-		app := body.(*appData)
-		fmt.Println("New app created.")
-		fmt.Printf("App ID: %v\n", app.AppId)
-		fmt.Printf("App Name: %v\n", app.AppName)
-		fmt.Println()
+			app := body.(*appData)
+			fmt.Println("New app created.")
+			fmt.Printf("App ID: %v\n", app.AppId)
+			fmt.Printf("App Name: %v\n", app.AppName)
+			fmt.Println()
 
-		return nil
-	}).Execute()
+			return nil
+		}).Execute()
 
 	return err
 }
@@ -301,8 +307,8 @@ func _getApp(ctx *Context, args *baseAppArgs) (*appData, error) {
 		ProjectToken(ctx.Profile, args.projectId).
 		ResponseBody(app).
 		ResponseBodyHandler(func(body interface{}) error {
-		return nil
-	}).Execute()
+			return nil
+		}).Execute()
 
 	return app, err
 }
@@ -385,21 +391,21 @@ func listApps(c *Command, ctx *Context) error {
 		ProjectToken(ctx.Profile, args.projectId).
 		ResponseBody(new(listResult)).
 		ResponseBodyHandler(func(body interface{}) error {
-		list := body.(*listResult)
-		if len(list.Apps) > 0 {
-			spacer := ""
-			for _, info := range list.Apps {
-				fmt.Printf(spacer)
-				info.Print()
-				fmt.Println()
-				spacer = "----------\n\n"
+			list := body.(*listResult)
+			if len(list.Apps) > 0 {
+				spacer := ""
+				for _, info := range list.Apps {
+					fmt.Printf(spacer)
+					info.Print()
+					fmt.Println()
+					spacer = "----------\n\n"
+				}
+			} else {
+				fmt.Printf("No apps found for project %d.\n", args.projectId)
 			}
-		} else {
-			fmt.Printf("No apps found for project %d.\n", args.projectId)
-		}
 
-		return nil
-	}).Execute()
+			return nil
+		}).Execute()
 
 	return err
 }
@@ -463,19 +469,58 @@ func updateAppStatus(c *Command, ctx *Context) error {
 		req = ctx.Client.Put(baseApiPath[keyApp]).Param("name", args.name)
 	}
 
+	var wantedStatus string
 	if args.isStart {
-		app.RequestedStatus = appStatusRunning
+		wantedStatus = appStatusRunning
 	} else {
-		app.RequestedStatus = appStatusStopped
+		wantedStatus = appStatusStopped
 	}
-	rsp, err := req.Expect(200).
+	app.RequestedStatus = wantedStatus
+	rsp, err := req.
+		Expect(200).
 		ProjectToken(ctx.Profile, args.projectId).
 		Body(app).
 		Execute()
 
 	if err != nil && rsp.Http().StatusCode == 204 {
+		fmt.Printf("Requested status is already %s\n", wantedStatus)
 		return nil
+	} else if err != nil {
+		return err
 	}
 
-	return err
+	fmt.Printf("Requested status: %s. Waiting for current status to change.\n", wantedStatus)
+	tries := 0
+	sleep := 0
+	for true {
+		fmt.Printf("Checking app status...")
+		time.Sleep(time.Duration(sleep) * time.Second)
+
+		app, err := _getApp(ctx, &args.baseAppArgs)
+		if err != nil {
+			return fmt.Errorf("Error while waiting for status change: %v\n", err)
+		}
+		fmt.Printf("%s\n", app.CurrentStatus)
+
+		if app.CurrentStatus == wantedStatus {
+			fmt.Printf("Success!\n")
+			break
+		} else if app.CurrentStatus == appStatusError {
+			fmt.Printf("Unsuccessful, app finished in error state.\n")
+			break
+		}
+
+		sleep += backOffAmt
+		if sleep > backOffMax {
+			sleep = backOffMax
+		}
+
+		tries++
+		if tries > maxStatusTries {
+			fmt.Printf("Timed out waiting for app status to change.\n")
+			break
+		}
+	}
+
+	return nil
 }
