@@ -1,4 +1,4 @@
-# iobeam Command-line Interface #
+# iobeam Command-line Interface
 
 **[iobeam](http://iobeam.com)** is a data platform for connected devices.
 
@@ -8,30 +8,37 @@ information on the iobeam API, please read our [full API documentation](http://d
 *Please note that we are currently invite-only. You will need an invite
 to generate a valid token and use our APIs. (Want an invite? Sign up [here](http://iobeam.com).)*
 
-## Installation ##
+## Installation
 
 Included with each release are [binary executables](https://github.com/iobeam/iobeam/releases)
-(both 32- and 64-bit) for OSX (darwin), Linux, and Windows. This is the easiest way to use the CLI,
-simply download the one that corresponds to your platform, rename it `iobeam`, and make sure it
-is executable.
+for OSX (darwin), Linux, and Windows. **This is the easiest way** to use the
+CLI: simply download the one that corresponds to your platform, rename it
+`iobeam`, and make sure it is executable.
+
+For OSX users, it is also available via Homebrew:
+```bash
+$ brew tap iobeam/tap
+$ brew install iobeam
+```
 
 ### Building and installing from source
 
-Install `Go` if not already installed (e.g., `brew install go` on Mac OS X). Make sure you
-set your `GOPATH` (e.g., export GOPATH=~/go) and that the `GOPATH` exists. We recommend
-using Go 1.4.2 or newer; some older versions may have SSL certificate issues.
+You'll need to install [Go](https://golang.org/) (e.g., `brew install go` on
+Mac OSX). Make sure your `GOPATH` is set (e.g., `export GOPATH=~/go`).
+We recommend using the latest version of Go, but at least version 1.4.3.
+Older versions may have problems.
 
 Then,
+```bash
+$ go get github.com/iobeam/iobeam
+```
 
-    $ go get github.com/iobeam/iobeam
+## Getting Started
 
-Note: On first run, a dot directory, `.iobeam`, is created in your home directory to
-store state such as user and project tokens which authenticate you to the iobeam cloud.
+On first run, a dot directory, `.iobeam`, is created in your home
+directory to store state such as user and project tokens which authenticate you to the iobeam cloud.
 
-
-## Getting Started ##
-
-### Creating your first project and device ###
+### Creating your first project and device
 
     # Register as a new user, this will automatically log you in.
     $ iobeam user create -email="<email>" -password="<password>" -invite="<invite_code>"
@@ -48,7 +55,7 @@ store state such as user and project tokens which authenticate you to the iobeam
     # Create a new device. (Keep track of the device_id that the API returns.)
     $ iobeam device create -projectId=<project_id>
 
-### Sending data ###
+### Sending data
 
 You can send single data points via the CLI. Timestamps are expressed as milliseconds since
 epoch.
@@ -65,7 +72,7 @@ epoch.
 
 You can also refer to our [Imports API](http://docs.iobeam.com/imports).
 
-### Querying data ###
+### Querying data
 
 *Note: All of these commands require that you first create a valid project token with read access.
 This will be created when you create the project, however if this does not work for some reason, see
@@ -94,7 +101,7 @@ The REST API also supports richer queries with operators (e.g., `mean`, `min`, `
 ranges, time-series rollups, and more. Please refer to our [Exports API](http://docs.iobeam.com/api/exports/)
 for more information.
 
-### Testing triggers ###
+### Testing triggers
 
 If you want to make sure you have set up a trigger correctly with iobeam,
 you can test it by firing a test event. This allows you to verify your
@@ -118,7 +125,7 @@ Multiple parameters can also be specified:
     $ iobeam trigger test -name=<trigger_name> -param="name,Bob" -param="age,20"
 
 
-### Creating additional project tokens ###
+### Creating additional project tokens
 
 When you create a project, the token you are given has admin privileges, which you will not want to
 distribute with devices going to third parties. Instead, you can generate a new token that
