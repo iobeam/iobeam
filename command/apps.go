@@ -16,9 +16,9 @@ const (
 
 	keyApp = "app"
 
-	maxStatusTries = 10
-	backOffAmt     = 3
-	backOffMax     = 10
+	maxStatusTries = 20
+	backOffAmt     = 5
+	backOffMax     = 15
 )
 
 func init() {
