@@ -43,7 +43,7 @@ func getUrlForTriggerId(id uint64) string {
 // NewTriggersCommand returns the base 'trigger' command.
 func NewTriggersCommand(ctx *Context) *Command {
 	cmd := &Command{
-		Name:  flagSetNames[keyTrigger],
+		Name:  keyTrigger,
 		Usage: "Commands for managing triggers.",
 		SubCommands: Mux{
 			"add-action":    newAddActionTriggerCommand(ctx),
@@ -158,12 +158,12 @@ func getAllTriggers(c *Command, ctx *Context) error {
 		ProjectToken(ctx.Profile, args.projectId).
 		ResponseBody(new(triggersResult)).
 		ResponseBodyHandler(func(resp interface{}) error {
-		results := resp.(*triggersResult)
-		for _, t := range results.Triggers {
-			t.Print()
-		}
-		return nil
-	}).Execute()
+			results := resp.(*triggersResult)
+			for _, t := range results.Triggers {
+				t.Print()
+			}
+			return nil
+		}).Execute()
 
 	return err
 }
@@ -234,8 +234,8 @@ func _getTrigger(ctx *Context, args *triggerBaseArgs) (*fullTrigger, error) {
 		ProjectToken(ctx.Profile, args.projectId).
 		ResponseBody(res).
 		ResponseBodyHandler(func(resp interface{}) error {
-		return nil
-	}).Execute()
+			return nil
+		}).Execute()
 
 	return res, err
 }
@@ -499,10 +499,10 @@ func createTrigger(c *Command, ctx *Context) error {
 		Body(body).
 		ResponseBody(body).
 		ResponseBodyHandler(func(resp interface{}) error {
-		trigger := resp.(*fullTrigger)
-		fmt.Printf("Trigger '%s' created with ID: %d\n", trigger.TriggerName, trigger.TriggerId)
-		return nil
-	}).Execute()
+			trigger := resp.(*fullTrigger)
+			fmt.Printf("Trigger '%s' created with ID: %d\n", trigger.TriggerName, trigger.TriggerId)
+			return nil
+		}).Execute()
 
 	return err
 }
