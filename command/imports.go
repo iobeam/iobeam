@@ -47,37 +47,37 @@ type dataPoint struct {
 }
 
 type sourceObj struct {
-	Name string      `json:"name"`
-	Data []dataPoint `json:"data"`
+	Fields []string        `json:"fields"`
+	Data   [][]interface{} `json:"data"`
 }
 
 type importObj struct {
-	ProjectId uint64      `json:"project_id"`
-	DeviceId  string      `json:"device_id"`
-	Sources   []sourceObj `json:"sources"`
+	ProjectId uint64    `json:"project_id"`
+	DeviceId  string    `json:"device_id"`
+	Sources   sourceObj `json:"sources"`
 }
 
 func sendImport(c *Command, ctx *Context) error {
 	d := c.Data.(*importData)
 
-	dp := dataPoint{
-		Time:  d.timestamp,
-		Value: d.value,
-	}
-	source1 := sourceObj{
-		Name: d.series,
-		Data: []dataPoint{dp},
+	fields := []string{"time", d.series}
+	row := []interface{}{d.timestamp, d.value}
+
+	source := sourceObj{
+		Fields: fields,
+		Data:   [][]interface{}{row},
 	}
 	obj := importObj{
 		ProjectId: d.projectId,
 		DeviceId:  d.deviceId,
-		Sources:   []sourceObj{source1},
+		Sources:   source,
 	}
 
 	_, err := ctx.Client.
 		Post(c.ApiPath).
 		Expect(200).
 		ProjectToken(ctx.Profile, d.projectId).
+		Param("fmt", "table").
 		Body(obj).
 		Execute()
 
