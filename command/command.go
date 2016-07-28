@@ -128,7 +128,11 @@ func (c *Command) Execute(ctx *Context) error {
 
 	ctx.Index++
 
-	c.parseFlags(ctx)
+	err := c.parseFlags(ctx)
+
+	if err != nil {
+		return err
+	}
 
 	if c.isValid() {
 		if c.Action != nil {
@@ -151,11 +155,18 @@ func (c *Command) Execute(ctx *Context) error {
 	return nil
 }
 
-func (c *Command) parseFlags(ctx *Context) {
+func (c *Command) parseFlags(ctx *Context) error {
 	if c.flags != nil {
 		c.flags.Parse(ctx.Args[ctx.Index:])
 		ctx.Index += c.flags.NFlag()
 	}
+
+	if c.SubCommands == nil && len(c.flags.Args()) > 0 {
+		c.printUsage()
+		fmt.Print("\n")
+		return fmt.Errorf("Unrecognized input: %s\n", c.flags.Args())
+	}
+	return nil
 }
 
 // isInList looks for a string in a list of strings.
