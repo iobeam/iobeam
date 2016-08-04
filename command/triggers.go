@@ -11,7 +11,10 @@ const (
 	descCreateTriggerName = "Name of the new trigger."
 	descCreateDataExpiry  = "Time (in milliseconds) after which data is considered too old to fire trigger (0 = never too old)."
 	descCreateMinDelay    = "Minimum time (in milliseconds) between successive trigger firings (used to rate limit trigger events)."
-	descCreateTypeFmt     = "Create a new trigger with an %s action."
+	descCreateFireWhen    = "Condition when a trigger is fired (ex. \"{{ temp }} > 25.0\")."
+	descCreateReleaseWhen = "Optional condition when a trigger is released (ex. \"{{ temp }} < 22.0\")."
+
+	descCreateTypeFmt = "Create a new trigger with an %s action."
 
 	descAddActionTypeFmt = "Add new %s action to a trigger."
 
@@ -66,14 +69,20 @@ func NewTriggersCommand(ctx *Context) *Command {
 
 // triggerData is the main meta data for all triggers.
 type triggerData struct {
-	TriggerId   uint64 `json:"trigger_id,omitempty"`
-	ProjectId   uint64 `json:"project_id"`
-	TriggerName string `json:"trigger_name"`
-	DataExpiry  uint64 `json:"data_expiry,omitempty"`
+	TriggerId      uint64  `json:"trigger_id,omitempty"`
+	ProjectId      uint64  `json:"project_id"`
+	Namespace      string  `json:"namespace"`
+	TriggerName    string  `json:"trigger_name"`
+	DataExpiry     uint64  `json:"data_expiry,omitempty"`
+	FireWhen       string  `json:"fire_when"`
+	ReleaseWhenPtr *string `json:"release_when,omitempty"`
+	releaseWhen    string
+	dumpRequest    bool
+	dumpResponse   bool
 }
 
 func (d *triggerData) IsValid() bool {
-	return d.ProjectId > 0 && len(d.TriggerName) > 0 && d.DataExpiry >= 0
+	return d.ProjectId > 0 && len(d.TriggerName) > 0 && d.DataExpiry >= 0 && len(d.FireWhen) > 0
 }
 
 // triggerAction is the data for a trigger action
@@ -90,10 +99,15 @@ type fullTrigger struct {
 }
 
 func (t *fullTrigger) Print() {
-	fmt.Println("Trigger ID  :", t.TriggerId)
-	fmt.Println("Trigger name:", t.TriggerName)
-	fmt.Println("Project ID  :", t.ProjectId)
-	fmt.Println("Data expiry :", t.DataExpiry)
+	fmt.Println("Trigger ID   :", t.TriggerId)
+	fmt.Println("Trigger name :", t.TriggerName)
+	fmt.Println("Project ID   :", t.ProjectId)
+	fmt.Println("Data expiry  :", t.DataExpiry)
+	fmt.Println("Namespace    :", t.Namespace)
+	fmt.Println("Fire when :", t.FireWhen)
+	if t.ReleaseWhenPtr != nil {
+		fmt.Println("Release when :", *t.ReleaseWhenPtr)
+	}
 	fmt.Println("Actions:")
 	i := 1
 	for _, a := range t.Actions {
@@ -108,12 +122,15 @@ func (t *fullTrigger) Print() {
 	fmt.Println()
 }
 
-func newTrigger(name string, projectId, dataExpiry uint64, actions []triggerAction) *fullTrigger {
+func newTrigger(name string, projectId, dataExpiry uint64, fireWhen string, releaseWhen *string, namespace string, actions []triggerAction) *fullTrigger {
 	ret := &fullTrigger{
 		triggerData: triggerData{
-			TriggerName: name,
-			ProjectId:   projectId,
-			DataExpiry:  dataExpiry,
+			TriggerName:    name,
+			ProjectId:      projectId,
+			DataExpiry:     dataExpiry,
+			FireWhen:       fireWhen,
+			ReleaseWhenPtr: releaseWhen,
+			Namespace:      namespace,
 		},
 		Actions: make([]triggerAction, len(actions)),
 	}
@@ -461,8 +478,14 @@ func (a *createArgs) setCommonFlags(flags *flag.FlagSet, ctx *Context) {
 	flags.Uint64Var(&a.triggerData.ProjectId, "projectId", ctx.Profile.ActiveProject, descCreateProjectId)
 	flags.StringVar(&a.triggerData.TriggerName, "name", "", descCreateTriggerName)
 	flags.Uint64Var(&a.triggerData.DataExpiry, "dataExpiry", 0, descCreateDataExpiry)
+	flags.StringVar(&a.triggerData.FireWhen, "fireWhen", "", descCreateFireWhen)
+	//flags.StringVar(&a.triggerData.releaseWhen, "releaseWhen", "", descCreateReleaseWhen)
+	flags.BoolVar(&a.triggerData.dumpRequest, "dumpRequest", false, "Dump the request to std out.")
+	flags.BoolVar(&a.triggerData.dumpResponse, "dumpResponse", false, "Dump the response to std out.")
+	flags.StringVar(&a.triggerData.Namespace, "namespace", "input", "Namespace to read to (Defaults to 'input')")
 
 	flags.Uint64Var(&a.minDelay, "minDelay", 0, descCreateMinDelay)
+
 }
 
 func newCreateTypeCommand(ctx *Context, action string) *Command {
@@ -493,9 +516,17 @@ func createTrigger(c *Command, ctx *Context) error {
 		{Type: getActionType(args.data), MinDelay: args.minDelay, Args: args.data},
 	}
 
-	body := newTrigger(args.triggerData.TriggerName, args.triggerData.ProjectId, args.triggerData.DataExpiry, actions)
+	releasePtr := (*string)(nil)
+
+	if len(args.triggerData.releaseWhen) > 0 {
+		releasePtr = &args.triggerData.releaseWhen
+	}
+
+	body := newTrigger(args.triggerData.TriggerName, args.triggerData.ProjectId, args.triggerData.DataExpiry, args.triggerData.FireWhen, releasePtr, args.Namespace, actions)
 	_, err := ctx.Client.Post(c.ApiPath).Expect(201).
 		ProjectToken(ctx.Profile, body.ProjectId).
+		DumpRequest(args.triggerData.dumpRequest).
+		DumpResponse(args.triggerData.dumpResponse).
 		Body(body).
 		ResponseBody(body).
 		ResponseBodyHandler(func(resp interface{}) error {

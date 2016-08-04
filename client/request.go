@@ -215,7 +215,7 @@ func (r *Request) ResponseBodyHandler(handler ResponseBodyHandler) *Request {
 // Set whether the request should be dumped to stdout.
 // It returns the *Request so it can be chained.
 
-func (r *Request) DumpRequestOut(dumpFlag bool) *Request {
+func (r *Request) DumpRequest(dumpFlag bool) *Request {
 	r.dumpRequest = dumpFlag
 	return r
 }
@@ -265,12 +265,12 @@ func (r *Request) Execute() (*Response, error) {
 
 	if r.dumpRequest {
 
-		dump, err := httputil.DumpRequestOut(req, true)
+		dump, err := httputil.DumpRequest(req, true)
 		if err != nil {
 			return nil, err
 		}
 
-		fmt.Printf("REQ: %q\n", dump)
+		fmt.Printf("REQ:\n %q\n", dump)
 	}
 
 	httpRsp, err := r.client.httpClient.Do(req)
@@ -284,7 +284,7 @@ func (r *Request) Execute() (*Response, error) {
 			return nil, err
 		}
 
-		fmt.Printf("RSP: %q\n", dump)
+		fmt.Printf("RSP:\n %q\n", dump)
 	}
 
 	rsp := NewResponse(httpRsp)

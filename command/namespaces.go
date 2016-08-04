@@ -1,10 +1,9 @@
 package command
 
 import (
+	"bytes"
 	"fmt"
 )
-
-//{"namespace_id":57,"project_id":225,"name":"input","partitioning_field":"device_id","created":"2016-07-29T08:19:47Z","last_modified":"2016-07-29T08:19:47Z","fields":{"device_id":"STRING","double_series":"STRING"},"labels":{"device_id:distinct":true}}
 
 type namespaceData struct {
 	ProjectId         uint64                 `json:"project_id"`
@@ -37,24 +36,27 @@ func NewNamespaceCommand(ctx *Context) *Command {
 	return cmd
 }
 
-func (ns *namespaceData) Print() {
-	fmt.Printf("Name: %s\n", ns.Name)
-	fmt.Printf("Id: %d\n", ns.NamespaceId)
-	fmt.Printf("Partitioning field: %s\n", ns.PartitioningField)
-	fmt.Printf("Created: %s\n", ns.Created)
-	fmt.Printf("Last modified: %s\n", ns.LastModified)
-	fmt.Printf("Fields:\n")
+func (nsd *namespaceData) String() string {
+	var buffer bytes.Buffer
 
-	for fieldName, fieldType := range ns.Fields {
-		fmt.Printf("\t%s:%s\n", fieldName, fieldType)
+	buffer.WriteString(fmt.Sprintf("Name: %s\n", nsd.Name))
+	buffer.WriteString(fmt.Sprintf("Id: %d\n", nsd.NamespaceId))
+	buffer.WriteString(fmt.Sprintf("Partitioning field: %s\n", nsd.PartitioningField))
+	buffer.WriteString(fmt.Sprintf("Created: %s\n", nsd.Created))
+	buffer.WriteString(fmt.Sprintf("Last modified: %s\n", nsd.LastModified))
+	buffer.WriteString(fmt.Sprintf("Fields:\n"))
+
+	for fieldName, fieldType := range nsd.Fields {
+		buffer.WriteString(fmt.Sprintf("\t%s:%s\n", fieldName, fieldType))
 	}
 
-	fmt.Printf("Labels:\n")
+	buffer.WriteString(fmt.Sprintf("Labels:\n"))
 
-	for labelName, labelValue := range ns.Labels {
-		fmt.Printf("\t%s:%s\n", labelName, labelValue)
+	for labelName, labelValue := range nsd.Labels {
+		buffer.WriteString(fmt.Sprintf("\t%s:%s\n", labelName, labelValue))
 	}
 
+	return buffer.String()
 }
 
 func newListNamespacesCmd(ctx *Context) *Command {
@@ -85,7 +87,7 @@ func listNamespaces(c *Command, ctx *Context) error {
 	_, err := ctx.Client.
 		Get(c.ApiPath).
 		ProjectToken(ctx.Profile, d.ProjectId).
-		DumpRequestOut(d.dumpRequest).
+		DumpRequest(d.dumpRequest).
 		DumpResponse(d.dumpResponse).
 		Expect(200).
 		ResponseBody(new(namespaceResult)).
@@ -94,7 +96,7 @@ func listNamespaces(c *Command, ctx *Context) error {
 			result := body.(*namespaceResult)
 
 			for _, n := range result.Namespaces {
-				n.Print()
+				fmt.Println(n.String())
 				fmt.Print("\n")
 			}
 

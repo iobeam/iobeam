@@ -96,12 +96,12 @@ func NewExportCommand(ctx *Context) *Command {
 
 	flags.Uint64Var(&e.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
 	flags.StringVar(&e.namespace, "namespace", "input", "Namespace to query.")
-	flags.Var(&e.fields, "field", "Name of Field(s) to filter results (flag can be used multiple times).")
+	flags.Var(&e.fields, "field", "Name of Field(s) to project results (flag can be used multiple times).")
 
 	flags.StringVar(&e.time, "time", "", "Expects an interval from,to where from and to can be expressions like now()-2h or an absolute UNIX timestamp that defaults to milliseconds. The to-part is optional and defaults to now()")
 	flags.Var(&e.wheres, "where", "A predicate statement on a field in the format f(field, value). Multiple where statements are allowed and form the logical conjunction (AND) (supported: "+strings.Join(predicates, ", ")+").")
 
-	flags.StringVar(&e.groupBy, "groupBy", "", "requires the operator parameter to calculate the aggregate of a field over a specific time interval and by optional field Group data by [number][period], where the time period can be ms, s, m, or h. Examples of valid values: '30s', '15m', '6h'. Requires a valid operator.")
+	flags.StringVar(&e.groupBy, "groupBy", "", "requires the operator parameter to calculate the aggregate of a field over a specific time interval and by optional field. Ex. groupBy=time(2m),myField or groupBy=time(10s) where the time period can be ms, s, m, or h. Examples of valid values: '30s', '15m', '6h'. Requires a valid operator.")
 	flags.StringVar(&e.operator, "operator", "", "Aggregation function to apply to datapoints: "+strings.Join(ops, ", "))
 
 	flags.StringVar(&e.limitBy, "limitBy", "", "Max number of results per field (ex. location,10).")
@@ -132,7 +132,7 @@ func getExport(c *Command, ctx *Context) error {
 
 	req := ctx.Client.Get(reqPath).Expect(200).
 		ProjectToken(ctx.Profile, e.projectId).
-		DumpRequestOut(e.dumpRequest).
+		DumpRequest(e.dumpRequest).
 		DumpResponse(e.dumpResponse).
 		ParamUint64("limit", e.limit).
 		Param("timefmt", e.timeFmt).
@@ -160,7 +160,7 @@ func getExport(c *Command, ctx *Context) error {
 		ResponseBodyHandler(func(body interface{}) error {
 
 			if e.output == outputJson {
-				if len(e.fields) > 0 {
+				if len(e.fields) > 0 && len(e.groupBy) == 0 {
 					bodyMap := *(body.(*map[string]interface{}))
 					results := bodyMap["result"].([]interface{})
 
