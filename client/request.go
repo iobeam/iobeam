@@ -283,7 +283,6 @@ func (r *Request) Execute() (*Response, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		fmt.Printf("RSP:\n %q\n", dump)
 	}
 
