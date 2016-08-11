@@ -42,6 +42,7 @@ type Request struct {
 	body               interface{}
 	bodyStream         io.Reader
 	responseBody       interface{}
+	responseHeaderPtr  **http.Header
 	handler            ResponseBodyHandler
 	parameters         url.Values
 	auth               *basicAuth
@@ -205,6 +206,13 @@ func (r *Request) ResponseBody(content interface{}) *Request {
 	return r
 }
 
+// ResponseHeader sets a pointer that will be directed to the response header.
+// It returns the *Request so it can be chained.
+func (r *Request) ResponseHeader(headerPtr **http.Header) *Request {
+	r.responseHeaderPtr = headerPtr
+	return r
+}
+
 // ResponseBodyHandler sets the ResponseBodyHandler to use when the request returns.
 // It returns the *Request so it can be chained.
 func (r *Request) ResponseBodyHandler(handler ResponseBodyHandler) *Request {
@@ -212,17 +220,15 @@ func (r *Request) ResponseBodyHandler(handler ResponseBodyHandler) *Request {
 	return r
 }
 
-// Set whether the request should be dumped to stdout.
+// DumpRequest sets whether the request should be dumped to stdout.
 // It returns the *Request so it can be chained.
-
 func (r *Request) DumpRequest(dumpFlag bool) *Request {
 	r.dumpRequest = dumpFlag
 	return r
 }
 
-// Set whether the response should be dumped to stdout.
+// DumpResponse sets whether the response should be dumped to stdout.
 // It returns the *Request so it can be chained.
-
 func (r *Request) DumpResponse(dumpFlag bool) *Request {
 	r.dumpResponse = dumpFlag
 	return r
@@ -286,6 +292,9 @@ func (r *Request) Execute() (*Response, error) {
 		fmt.Printf("RSP:\n %q\n", dump)
 	}
 
+	if r.responseHeaderPtr != nil {
+		*r.responseHeaderPtr = &httpRsp.Header
+	}
 	rsp := NewResponse(httpRsp)
 	contentType := contentTypeJson
 	if len(httpRsp.Header["Content-Type"]) > 0 {

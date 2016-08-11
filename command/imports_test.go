@@ -23,60 +23,36 @@ func TestIsValid(t *testing.T) {
 	cases := []importTestcase{
 		{
 			in: &importData{
-				projectId:       1,
-				partitioningKey: "device_id",
-				fields:          "fields",
-				timestamp:       123,
-				values:          "30",
+				projectId: 1,
+				fields:    "fields",
+				timestamp: 123,
+				values:    "30",
 			},
 			want: true,
 		},
 		{
 			in: &importData{
-				projectId:       0,
-				partitioningKey: "device_id",
-				fields:          "fields",
-				timestamp:       123,
-				values:          "42",
+				projectId: 0,
+				fields:    "fields",
+				timestamp: 123,
+				values:    "42",
 			},
 			want: false,
 		},
 		{
 			in: &importData{
-				projectId:       3,
-				partitioningKey: "",
-				fields:          "fields",
-				timestamp:       123,
-				values:          "42",
-			},
-			want: false,
-		},
-		{
-			in: &importData{
-				projectId:       4,
-				partitioningKey: "device_id",
-				fields:          "",
-				timestamp:       123,
-				values:          "42",
-			},
-			want: false,
-		},
-		{
-			in: &importData{
-				projectId:       5,
-				partitioningKey: "device_id",
-				fields:          "fields",
-				timestamp:       -1,
-				values:          "42",
+				projectId: 5,
+				fields:    "fields",
+				timestamp: -1,
+				values:    "42",
 			},
 			want: false,
 		}, {
 			in: &importData{
-				projectId:       6,
-				partitioningKey: "device_id",
-				fields:          "fields",
-				timestamp:       123,
-				values:          "",
+				projectId: 6,
+				fields:    "fields",
+				timestamp: 123,
+				values:    "",
 			},
 			want: false,
 		},
@@ -122,9 +98,9 @@ func TestStrToValues(t *testing.T) {
 		t.Fatalf("Failed to parse %s, got %v", s1, values)
 	}
 
-	values, _ = strToValues(s1, 3, true)
+	values, _ = strToValues(s1, 4, true)
 
-	if !reflect.DeepEqual(values[1:4], correct1) {
+	if len(values) != 4 || !reflect.DeepEqual(values[1:4], correct1) {
 		t.Fatalf("Failed to parse %s, got %v", s1, values)
 	}
 }

@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -22,24 +23,24 @@ type namespaceData struct {
 	dumpResponse      bool
 }
 
-func (nsd *namespaceData) IsValid() bool {
-	return nsd.ProjectId > 0
+func (d *namespaceData) IsValid() bool {
+	return d.ProjectId > 0
 }
 
 type updateNamespaceData struct {
 	namespaceData
 }
 
-func (unsd *updateNamespaceData) IsValid() bool {
-	return len(unsd.fieldsStrs) > 0 && unsd.NamespaceId > 0 && unsd.ProjectId > 0
+func (d *updateNamespaceData) IsValid() bool {
+	return len(d.fieldsStrs) > 0 && d.NamespaceId > 0 && d.ProjectId > 0
 }
 
 type createNamespaceData struct {
 	namespaceData
 }
 
-func (cnsd *createNamespaceData) IsValid() bool {
-	return len(cnsd.Name) > 0 && len(cnsd.PartitioningField) > 0 && len(cnsd.fieldsStrs) > 0 && cnsd.ProjectId > 0
+func (d *createNamespaceData) IsValid() bool {
+	return len(d.Name) > 0 && len(d.PartitioningField) > 0 && len(d.fieldsStrs) > 0 && d.ProjectId > 0
 }
 
 func NewNamespaceCommand(ctx *Context) *Command {
@@ -57,23 +58,23 @@ func NewNamespaceCommand(ctx *Context) *Command {
 	return cmd
 }
 
-func (nsd *namespaceData) String() string {
+func (d *namespaceData) String() string {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("Name: %s\n", nsd.Name))
-	buffer.WriteString(fmt.Sprintf("Id: %d\n", nsd.NamespaceId))
-	buffer.WriteString(fmt.Sprintf("Partitioning field: %s\n", nsd.PartitioningField))
-	buffer.WriteString(fmt.Sprintf("Created: %s\n", nsd.Created))
-	buffer.WriteString(fmt.Sprintf("Last modified: %s\n", nsd.LastModified))
+	buffer.WriteString(fmt.Sprintf("Name: %s\n", d.Name))
+	buffer.WriteString(fmt.Sprintf("Id: %d\n", d.NamespaceId))
+	buffer.WriteString(fmt.Sprintf("Partitioning field: %s\n", d.PartitioningField))
+	buffer.WriteString(fmt.Sprintf("Created: %s\n", d.Created))
+	buffer.WriteString(fmt.Sprintf("Last modified: %s\n", d.LastModified))
 	buffer.WriteString(fmt.Sprintf("Fields:\n"))
 
-	for fieldName, fieldType := range nsd.Fields {
+	for fieldName, fieldType := range d.Fields {
 		buffer.WriteString(fmt.Sprintf("\t%s:%s\n", fieldName, fieldType))
 	}
 
 	buffer.WriteString(fmt.Sprintf("Labels:\n"))
 
-	for labelName, labelValue := range nsd.Labels {
+	for labelName, labelValue := range d.Labels {
 		buffer.WriteString(fmt.Sprintf("\t%s:%s\n", labelName, labelValue))
 	}
 	return buffer.String()
@@ -93,7 +94,7 @@ func newUpdateNamespaceCmd(ctx *Context) *Command {
 	flags := cmd.NewFlagSet("create namespace")
 	flags.Uint64Var(&args.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID (defaults to active project).")
 	flags.Uint64Var(&args.NamespaceId, "id", 0, "Namespace id.")
-	flags.Var(&args.fieldsStrs, "field", "Field on form name:type (ex: temp:DOUBLE). Supported types are DOUBLE,LONG; and STRING")
+	flags.Var(&args.fieldsStrs, "field", "Field on form name:type (ex: temp:DOUBLE). Supported types are DOUBLE,LONG, and STRING")
 	flags.Var(&args.labelsStrs, "label", "Label to set to import batch, can occur multiple times to set multiple labels (ex. device_id=\\\"myDevice\\\")")
 
 	flags.BoolVar(&args.dumpRequest, "dumpRequest", false, "Dump the request to std out.")
@@ -240,6 +241,7 @@ func createNamespace(c *Command, ctx *Context) error {
 		return err
 	}
 
+	var headers *http.Header
 	d.Fields = fields
 	_, err = ctx.Client.
 		Post(c.ApiPath).
@@ -247,10 +249,14 @@ func createNamespace(c *Command, ctx *Context) error {
 		DumpRequest(d.dumpRequest).
 		DumpResponse(d.dumpResponse).
 		Body(d).
+		ResponseHeader(&headers).
 		Expect(201).
 		Execute()
 
-	fmt.Println("Namespace created.")
+	if err == nil {
+		location := (*headers).Get("location")
+		fmt.Printf("Namespace created at %s.\n", location)
+	}
 	return err
 }
 
