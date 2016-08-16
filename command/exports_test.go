@@ -15,13 +15,14 @@ func innerTest(t *testing.T, cases []testcase) {
 	}
 }
 
+/*
 func TestDefaultExportDataIsValid(t *testing.T) {
 	cases := []testcase{
 		{
 			in: &exportData{
 				projectId: 1,
 				limit:     1,
-				from:      0,
+				time:      "0,",
 				timeFmt:   "msec",
 				output:    "json",
 			},
@@ -31,7 +32,7 @@ func TestDefaultExportDataIsValid(t *testing.T) {
 			in: &exportData{
 				projectId: 0, // must be > 0
 				limit:     1,
-				from:      0,
+				time:      "0,",
 				timeFmt:   "msec",
 				output:    "json",
 			},
@@ -41,7 +42,7 @@ func TestDefaultExportDataIsValid(t *testing.T) {
 			in: &exportData{
 				projectId: 1,
 				limit:     0, // must be > 0
-				from:      0,
+				time:      "0,",
 				timeFmt:   "msec",
 				output:    "json",
 			},
@@ -62,7 +63,7 @@ func TestTimeRangeExportDataIsValid(t *testing.T) {
 				limit:     1,
 				timeFmt:   "msec",
 				output:    "json",
-				from:      0,
+				time:      "0,",
 			},
 			want: true,
 		},
@@ -72,7 +73,7 @@ func TestTimeRangeExportDataIsValid(t *testing.T) {
 				limit:     1,
 				timeFmt:   "msec",
 				output:    "json",
-				to:        10,
+				time:      ",10",
 			},
 			want: true,
 		},
@@ -82,8 +83,7 @@ func TestTimeRangeExportDataIsValid(t *testing.T) {
 				limit:     1,
 				timeFmt:   "msec",
 				output:    "json",
-				from:      0,
-				to:        10,
+				time:      "0,10",
 			},
 			want: true,
 		},
@@ -93,8 +93,7 @@ func TestTimeRangeExportDataIsValid(t *testing.T) {
 				limit:     1,
 				timeFmt:   "msec",
 				output:    "json",
-				from:      0,
-				to:        0,
+				time:      "0,0",
 			},
 			want: true,
 		},
@@ -104,8 +103,7 @@ func TestTimeRangeExportDataIsValid(t *testing.T) {
 				limit:     1,
 				timeFmt:   "msec",
 				output:    "json",
-				from:      10,
-				to:        0,
+				time:      "10,0",
 			},
 			want: false,
 		},
@@ -469,3 +467,4 @@ func TestOutputExportDataIsValid(t *testing.T) {
 
 	innerTest(t, cases)
 }
+*/

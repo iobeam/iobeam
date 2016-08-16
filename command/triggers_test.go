@@ -170,6 +170,7 @@ func TestTriggerDataValidity(t *testing.T) {
 				TriggerId:   0,
 				ProjectId:   1,
 				TriggerName: "trigger",
+				FireWhen:    "{{ temp }} > 20",
 				DataExpiry:  0,
 			},
 			want: true,

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"strconv"
 	"strings"
@@ -46,6 +47,8 @@ type Request struct {
 	auth               *basicAuth
 	token              *AuthToken
 	expectedStatusCode *int
+	dumpRequest        bool
+	dumpResponse       bool
 }
 
 // NewRequest creates a new API request to iobeam. It takes a *Client that
@@ -54,11 +57,13 @@ type Request struct {
 func NewRequest(client *Client, method, apiCall string) *Request {
 
 	builder := Request{
-		client:     client,
-		method:     method,
-		apiCall:    apiCall,
-		headers:    make(http.Header),
-		parameters: make(url.Values),
+		client:       client,
+		method:       method,
+		apiCall:      apiCall,
+		headers:      make(http.Header),
+		parameters:   make(url.Values),
+		dumpRequest:  false,
+		dumpResponse: false,
 	}
 
 	return &builder
@@ -144,23 +149,22 @@ func refreshToken(r *Request, t *AuthToken, p *config.Profile) {
 		Body(body).
 		ResponseBody(new(AuthToken)).
 		ResponseBodyHandler(func(token interface{}) error {
+			projToken := token.(*AuthToken)
+			err := projToken.Save(p)
+			if err != nil {
+				fmt.Printf("Could not save new token: %s\n", err)
+			}
 
-		projToken := token.(*AuthToken)
-		err := projToken.Save(p)
-		if err != nil {
-			fmt.Printf("Could not save new token: %s\n", err)
-		}
+			err = p.UpdateActiveProject(projToken.ProjectId)
+			if err != nil {
+				fmt.Printf("Could not update active project: %s\n", err)
+			}
+			fmt.Println("New project token acquired...")
+			fmt.Printf("Expires: %v\n", projToken.Expires)
+			fmt.Println("-----")
 
-		err = p.UpdateActiveProject(projToken.ProjectId)
-		if err != nil {
-			fmt.Printf("Could not update active project: %s\n", err)
-		}
-		fmt.Println("New project token acquired...")
-		fmt.Printf("Expires: %v\n", projToken.Expires)
-		fmt.Println("-----")
-
-		return err
-	}).Execute()
+			return err
+		}).Execute()
 }
 
 // UserToken returns a request with user token set. It returns the *Request so it can be chained.
@@ -208,6 +212,22 @@ func (r *Request) ResponseBodyHandler(handler ResponseBodyHandler) *Request {
 	return r
 }
 
+// Set whether the request should be dumped to stdout.
+// It returns the *Request so it can be chained.
+
+func (r *Request) DumpRequest(dumpFlag bool) *Request {
+	r.dumpRequest = dumpFlag
+	return r
+}
+
+// Set whether the response should be dumped to stdout.
+// It returns the *Request so it can be chained.
+
+func (r *Request) DumpResponse(dumpFlag bool) *Request {
+	r.dumpResponse = dumpFlag
+	return r
+}
+
 // Execute causes the API request to be carried out, returning a *Response and
 // possibly an error.
 func (r *Request) Execute() (*Response, error) {
@@ -243,9 +263,28 @@ func (r *Request) Execute() (*Response, error) {
 		req.Header.Add("Authorization", "Bearer "+r.token.Token)
 	}
 
+	if r.dumpRequest {
+
+		dump, err := httputil.DumpRequest(req, true)
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Printf("REQ:\n %q\n", dump)
+	}
+
 	httpRsp, err := r.client.httpClient.Do(req)
 	if err != nil {
 		return nil, err
+	}
+
+	if r.dumpResponse {
+		dump, err := httputil.DumpResponse(httpRsp, true)
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Printf("RSP:\n %q\n", dump)
 	}
 
 	rsp := NewResponse(httpRsp)
