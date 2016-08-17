@@ -40,11 +40,11 @@ func NewImportCommand(ctx *Context) *Command {
 
 	flags := cmd.NewFlagSet("iobeam import")
 	flags.Uint64Var(&d.projectId, "projectId", pid, "Project ID (if omitted, defaults to active project)")
-	flags.StringVar(&d.namespace, "namespace", "input", "Namespace to write to (Defaults to 'input')")
+	flags.StringVar(&d.namespace, "namespace", "input", "Namespace to import to.")
 	flags.StringVar(&d.fields, "fields", "", "Comma separated list of field names (REQUIRED)")
 	flags.Int64Var(&d.timestamp, "time", now, "Timestamp, in milliseconds, of the data (if omitted, defaults to current time)")
-	flags.StringVar(&d.values, "values", "", "Comma separated list of data values(REQUIRED)")
-	flags.Var(&d.labels, "label", "Label to set to import batch, can occur multiple times to set multiple labels (ex. device_id=\\\"myDevice\\\")")
+	flags.StringVar(&d.values, "values", "", "Comma separated list of data values (REQUIRED)")
+	flags.Var(&d.labels, "label", "Label(s) to set for import batch (ex. device_id=\\\"myDevice\\\"). Can occur multiple times to set multiple labels.")
 
 	flags.BoolVar(&d.dumpRequest, "dumpRequest", false, "Dump the request to std out.")
 	flags.BoolVar(&d.dumpResponse, "dumpResponse", false, "Dump the response to std out.")
@@ -120,7 +120,7 @@ func strToValues(s string, numberOfFields int, addTime bool) ([]interface{}, err
 	values := make([]interface{}, fieldsToParse)
 	for i, s := range strings.Split(s, ",") {
 		if i >= fieldsToParse {
-			return nil, fmt.Errorf("to many values in %s", s)
+			return nil, fmt.Errorf("Too many values in %s", s)
 		}
 
 		value, err := strToValue(s)
@@ -162,13 +162,12 @@ func sendImport(c *Command, ctx *Context) error {
 		// only supports string labels for now
 		labelAndValue := strings.Split(labelStr, "=")
 		if len(labelAndValue) != 2 {
-			return fmt.Errorf("Bad label arg: %s\n", labelStr)
+			return fmt.Errorf("Bad label flag arg: %s\n", labelStr)
 		}
 
-		value, err := strToValue(labelAndValue[1])
-		if err != nil {
-
-			return nil
+		value, _ := strToValue(labelAndValue[1])
+		if value == nil {
+			return fmt.Errorf("Could not determine label value: %s\n", labelAndValue[1])
 		}
 		labels[labelAndValue[0]] = value
 	}
