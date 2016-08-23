@@ -3,7 +3,6 @@ package command
 import (
 	"flag"
 	"fmt"
-	"strings"
 )
 
 const (
@@ -55,7 +54,6 @@ func NewTriggersCommand(ctx *Context) *Command {
 			"get":           newGetTriggerCommand(ctx),
 			"list":          newListTriggersCommand(ctx),
 			"remove-action": newRemoveActionTriggerCommand(ctx),
-			"test":          newTestTriggerCommand(ctx),
 		},
 	}
 	cmd.NewFlagSet(flagSetNames[keyTrigger])
@@ -305,67 +303,9 @@ func deleteTrigger(c *Command, ctx *Context) error {
 	return err
 }
 
-// Test trigger and functions
-
-type triggerTestArgs struct {
-	projectId   uint64
-	triggerName string
-	parameters  setFlags
-}
-
 type event struct {
 	EventName string                 `json:"event_name"`
 	Data      map[string]interface{} `json:"data"`
-}
-
-func (a *triggerTestArgs) IsValid() bool {
-	paramsOk := true
-	for k := range a.parameters {
-		if len(strings.SplitN(k, ",", 2)) != 2 {
-			paramsOk = false
-			break
-		}
-	}
-	return a.projectId > 0 && len(a.triggerName) > 0 && paramsOk
-}
-
-func newTestTriggerCommand(ctx *Context) *Command {
-	cmdStr := "test"
-	a := new(triggerTestArgs)
-	cmd := &Command{
-		Name:    cmdStr,
-		ApiPath: baseApiPath[keyTrigger] + "/events/test",
-		Usage:   "Test that a trigger works.",
-		Data:    a,
-		Action:  testTrigger,
-	}
-
-	flags := cmd.newFlagSetTrigger(cmdStr)
-	flags.Uint64Var(&a.projectId, "projectId", ctx.Profile.ActiveProject, "Project ID of trigger.")
-	flags.StringVar(&a.triggerName, "name", "", "Trigger name to test.")
-	flags.Var(&a.parameters, "param", "Parameters for trigger in form of \"param_key,param_value\" (flag can be used multiple times).")
-
-	return cmd
-}
-
-func testTrigger(c *Command, ctx *Context) error {
-	args := c.Data.(*triggerTestArgs)
-	body := event{
-		EventName: args.triggerName,
-		Data:      make(map[string]interface{}),
-	}
-	for k := range args.parameters {
-		temp := strings.SplitN(k, ",", 2)
-		body.Data[temp[0]] = temp[1]
-	}
-
-	_, err := ctx.Client.Put(c.ApiPath).
-		Expect(204).
-		ProjectToken(ctx.Profile, args.projectId).
-		Body(body).
-		Execute()
-
-	return err
 }
 
 type triggerRemoveActionArgs struct {

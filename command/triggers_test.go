@@ -85,64 +85,6 @@ func TestTriggerDeleteArgsValidity(t *testing.T) {
 	runDataTestCase(t, cases)
 }
 
-func TestTriggerTestArgsValidity(t *testing.T) {
-	cases := []dataTestCase{
-		{
-			desc: "a valid triggerTestArgs object",
-			in: &triggerTestArgs{
-				projectId:   1,
-				triggerName: "trigger",
-				parameters: setFlags{
-					"key,value": {},
-				},
-			},
-			want: true,
-		},
-		{
-			desc: "a valid triggerTestArgs object w/ no parameters",
-			in: &triggerTestArgs{
-				projectId:   1,
-				triggerName: "trigger",
-			},
-			want: true,
-		},
-		{
-			desc: testDescInvalidProjectId,
-			in: &triggerTestArgs{
-				projectId:   0,
-				triggerName: "trigger",
-				parameters: setFlags{
-					"key,value": {},
-				},
-			},
-			want: false,
-		},
-		{
-			desc: "invalid trigger name (none)",
-			in: &triggerTestArgs{
-				projectId: 1,
-				parameters: setFlags{
-					"key,value": {},
-				},
-			},
-			want: false,
-		},
-		{
-			desc: "invalid parameter (not comma separated)",
-			in: &triggerTestArgs{
-				projectId:   1,
-				triggerName: "trigger",
-				parameters: setFlags{
-					"key value": {},
-				},
-			},
-			want: false,
-		},
-	}
-
-	runDataTestCase(t, cases)
-}
-
 func TestTriggerDataValidity(t *testing.T) {
 	cases := []dataTestCase{
 		{
