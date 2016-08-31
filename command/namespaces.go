@@ -119,7 +119,7 @@ func updateNamespace(c *Command, ctx *Context) error {
 		Execute()
 
 	if err != nil {
-		return nil
+		return err
 	}
 
 	if len(d.labelsStrs) > 0 {
