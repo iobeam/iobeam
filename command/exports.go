@@ -142,6 +142,10 @@ func getExport(c *Command, ctx *Context) error {
 		req = req.Param("time", e.time)
 	}
 
+	if len(e.limitBy) > 0 {
+		req = req.Param("limit_by", e.limitBy)
+	}
+
 	if len(e.operator) > 0 {
 		req = req.Param("operator", e.operator)
 
@@ -155,6 +159,7 @@ func getExport(c *Command, ctx *Context) error {
 			req = req.Param("where", key)
 		}
 	}
+
 	x := make(map[string]interface{})
 	_, err := req.ResponseBody(&x).
 		ResponseBodyHandler(func(body interface{}) error {

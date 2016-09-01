@@ -75,7 +75,7 @@ func (d *namespaceData) String() string {
 	buffer.WriteString(fmt.Sprintf("Labels:\n"))
 
 	for labelName, labelValue := range d.Labels {
-		buffer.WriteString(fmt.Sprintf("\t%s:%s\n", labelName, labelValue))
+		buffer.WriteString(fmt.Sprintf("\t%s:%v\n", labelName, labelValue))
 	}
 	return buffer.String()
 }
@@ -119,7 +119,7 @@ func updateNamespace(c *Command, ctx *Context) error {
 		Execute()
 
 	if err != nil {
-		return nil
+		return err
 	}
 
 	if len(d.labelsStrs) > 0 {
