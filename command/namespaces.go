@@ -75,7 +75,7 @@ func (d *namespaceData) String() string {
 	buffer.WriteString(fmt.Sprintf("Labels:\n"))
 
 	for labelName, labelValue := range d.Labels {
-		buffer.WriteString(fmt.Sprintf("\t%s:%s\n", labelName, labelValue))
+		buffer.WriteString(fmt.Sprintf("\t%s:%v\n", labelName, labelValue))
 	}
 	return buffer.String()
 }
