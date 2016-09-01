@@ -58,19 +58,19 @@ $ iobeam device create -projectId=<project_id>
 
 ### Sending data
 
-You can send single data points via the CLI. Timestamps are expressed as milliseconds since
+You can send single data row via the CLI. Timestamps are expressed as milliseconds since
 epoch.
 ```sh
-# Send data point of value 12.5 with the current time
-$ iobeam import -projectId=<projectId> -deviceId=<deviceId> -series=<series name> -value=12.5
+# Send data row with temperature=72 and humidity=54 with the current time
+$ iobeam import -fields=temperature,humidity -values=72,54 -labels device_id=<deviceId>
 
-# Send data point with value 12.5 at time 1429718512829
-$ iobeam import -projectId=<projectId> -deviceId=<deviceId> -series=<series name> \
-    -time=1429718512829 -value=12.5
+# Send data row for time 1429718512829 (epoch time).
+$ iobeam import -fields=temperature,humidity -values=72,54 -labels device_id=<deviceId> \
+    -time=1429718512829
 
-# Optionally, you can leave the -projectId off and it will default to the
-# last project you got a token for
-$ iobeam import -deviceId=<deviceId> -series=<series name> -value=12.5
+# Optionally, you can specify the -projectId  (defaults to current project)
+$ iobeam import -projectId <projectId> -labels device_id=<deviceId> \
+    -fields=temperature,humidity -values=72,54 
 ```
 You can also refer to our [Imports API](http://docs.iobeam.com/imports).
 
@@ -80,52 +80,29 @@ You can also refer to our [Imports API](http://docs.iobeam.com/imports).
 This will be created when you create the project, however if this does not work for some reason, see
 the next section.*
 ```sh
-# Query all device data under a given project
+# Query the last 10 data rows for a project
 $ iobeam query -projectId=<project_id>
 
 # You can also leave off -projectId, which will use the projectId of the
-# last project you got a token for.
-$ iobeam query
+# last project you got a token for. 
+# The limit on the number of rows can be changed from its default of 10
+$ iobeam query -limit 1000
 
-# Query all data streams under a given project and device
-$ iobeam query -projectId=<project_id> -deviceId="<device_id>"
+# Query the last 10 data rows for a given device
+$ iobeam query -where "eq(device_id,<device_id>)" 
 
-# Query a specific data stream under a given project and device
-$ iobeam query -projectId=<project_id> -deviceId="<device_id>" -series="<series_name>"
+# Query the last row for each device (up to 1000 total rows)
+$ iobeam query -limitBy "device_id,1" -limit 1000
 
-# Query multiple series under a given project
-$ iobeam query -projectId=<project_id> -series="<series_name1>" -series="<series_name2>"
+# Query a specific data field under a given project and device
+$ iobeam query -where "eq(device_id,<device_id>)" -field="<field_name>"
 
-# Query a specific data stream over the last day
-$ iobeam query -projectId=<project_id> -series="<series_name>" -last="1d"
+# Query the last 1000 data rows over the last day 
+$ iobeam query -last="1d" -limit 1000
 ```
 The REST API also supports richer queries with operators (e.g., `mean`, `min`, `max`), date / value
 ranges, time-series rollups, and more. Please refer to our [Exports API](http://docs.iobeam.com/api/exports/)
 for more information.
-
-### Testing triggers
-
-If you want to make sure you have set up a trigger correctly with iobeam,
-you can test it by firing a test event. This allows you to verify your
-trigger is working correctly independent of any application logic. For
-the simplest triggers that don't use parameters:
-```sh
-$ iobeam trigger test -name=<trigger_name>
-```
-This will cause the trigger to fire, e.g., POST to the endpoint you set up when
-you made the trigger.
-
-If your trigger uses parameters in the payload, all of them must be specified
-using the `-param` flag in the form of `parameter_key,parameter_value`. So
-if you have a paramter called `name` and you want to test it with a value of `Bob`:
-```sh
-$ iobeam trigger test -name=<trigger_name> -param="name,Bob"
-```
-
-Multiple parameters can also be specified:
-```sh
-$ iobeam trigger test -name=<trigger_name> -param="name,Bob" -param="age,20"
-```
 
 ### Creating additional project tokens
 
