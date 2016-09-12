@@ -82,6 +82,14 @@ func strToValue(value string) (interface{}, error) {
 		return nil, err
 	}
 
+	if IsValidBoolean(value) {
+		boolValue, err := strconv.ParseBool(value)
+		if err == nil {
+			return boolValue, nil
+		}
+		return nil, err
+	}
+
 	if IsValidString(value) {
 		// remove the quotes
 		str := strings.TrimSuffix(strings.TrimPrefix(value, "\""), "\"")

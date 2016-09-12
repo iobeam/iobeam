@@ -57,3 +57,21 @@ func TestIsValidLong(t *testing.T) {
 		}
 	}
 }
+
+func TestIsValidBoolean(t *testing.T) {
+
+	validBooleans := [...]string{"true", "false", "True", "FalSe"}
+	invalidBooleans := [...]string{"flase", "Truee", "ffalsee"}
+
+	for _, validBoolean := range validBooleans {
+		if !IsValidBoolean(validBoolean) {
+			t.Fatalf("IsValidBoolean(%s) returned false", validBoolean)
+		}
+	}
+
+	for _, invalidBoolean := range invalidBooleans {
+		if IsValidBoolean(invalidBoolean) {
+			t.Fatalf("IsValidBoolean(%s) returned true", invalidBoolean)
+		}
+	}
+}
