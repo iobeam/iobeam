@@ -94,7 +94,7 @@ func newUpdateNamespaceCmd(ctx *Context) *Command {
 	flags := cmd.NewFlagSet("create namespace")
 	flags.Uint64Var(&args.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID (defaults to active project).")
 	flags.Uint64Var(&args.NamespaceId, "id", 0, "Namespace id.")
-	flags.Var(&args.fieldsStrs, "field", "Field on form name:type (ex: temp:DOUBLE). Supported types are DOUBLE,LONG, and STRING")
+	flags.Var(&args.fieldsStrs, "field", "Field on form name:type (ex: temp:DOUBLE). Supported types are DOUBLE,LONG,BOOLEAN and STRING")
 	flags.Var(&args.labelsStrs, "label", "Label to set to import batch, can occur multiple times to set multiple labels (ex. device_id=\\\"myDevice\\\")")
 
 	flags.BoolVar(&args.dumpRequest, "dumpRequest", false, "Dump the request to std out.")
@@ -178,7 +178,7 @@ func newCreateNamespaceCmd(ctx *Context) *Command {
 	flags.Uint64Var(&args.ProjectId, "projectId", ctx.Profile.ActiveProject, "Project ID (defaults to active project).")
 	flags.StringVar(&args.Name, "name", "", "Namespace name")
 	flags.StringVar(&args.PartitioningField, "partitioningField", "", "Field to partition incoming data on.")
-	flags.Var(&args.fieldsStrs, "field", "Field on form name:type (ex: temp:DOUBLE). Supported types are DOUBLE,LONG; and STRING")
+	flags.Var(&args.fieldsStrs, "field", "Field on form name:type (ex: temp:DOUBLE). Supported types are DOUBLE,LONG,BOOLEAN and STRING")
 	flags.Var(&args.labelsStrs, "label", "Label to set")
 
 	flags.BoolVar(&args.dumpRequest, "dumpRequest", false, "Dump the request to std out.")
