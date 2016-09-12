@@ -10,7 +10,7 @@ import (
 
 type namespaceData struct {
 	ProjectId         uint64                 `json:"project_id"`
-	Name              string                 `json:"name"`
+	Name              string                 `json:"namespace_name"`
 	PartitioningField string                 `json:"partitioning_field"`
 	Fields            map[string]string      `json:"fields"`
 	NamespaceId       uint64                 `json:"namespace_id,omitempty"`
