@@ -146,6 +146,10 @@ func getExport(c *Command, ctx *Context) error {
 		req = req.Param("limit_by", e.limitBy)
 	}
 
+	if e.limitPeriods > 0 {
+		req = req.ParamUint64("limit_periods", e.limitPeriods)
+	}
+
 	if len(e.operator) > 0 {
 		req = req.Param("operator", e.operator)
 
