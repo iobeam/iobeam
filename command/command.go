@@ -77,10 +77,18 @@ func (c *Command) NewFlagSet(name string) *flag.FlagSet {
 	return f
 }
 
+func (c *Command) hasFlags() bool {
+	return c.flags != nil && len(c.flags.Args()) > 0
+}
+
 func (c *Command) printUsage() {
+	flagsStr := ""
+	if c.hasFlags() {
+		flagsStr = "[FLAGS]"
+	}
 
 	if c.SubCommands != nil {
-		fmt.Fprintf(os.Stderr, "Usage: %s COMMAND [FLAGS]\n\n", c.Name)
+		fmt.Fprintf(os.Stderr, "Usage: %s COMMAND %s\n\n", c.Name, flagsStr)
 		fmt.Fprintf(os.Stderr, "%s\n", c.Usage)
 
 		fmt.Fprint(os.Stderr, "\nAvailable Commands:\n")
@@ -97,11 +105,11 @@ func (c *Command) printUsage() {
 				temp.Name, temp.Usage)
 		}
 	} else {
-		fmt.Fprintf(os.Stderr, "Usage: %s [FLAGS]\n\n", c.Name)
+		fmt.Fprintf(os.Stderr, "Usage: %s %s\n\n", c.Name, flagsStr)
 		fmt.Fprintf(os.Stderr, "%s\n", c.Usage)
 	}
 
-	if c.flags != nil {
+	if c.hasFlags() {
 		var b bytes.Buffer
 		writer := bufio.NewWriter(&b)
 		c.flags.SetOutput(writer)
@@ -134,8 +142,15 @@ func (c *Command) Execute(ctx *Context) error {
 		return err
 	}
 
+	// If there are flags, extra args have been checked for so default
+	// is true. If there are no flags associated with command, make sure
+	// the actionable command is the last arg.
+	noExtraArgs := true
+	if c.flags == nil {
+		noExtraArgs = ctx.Index == len(ctx.Args)
+	}
 	if c.isValid() {
-		if c.Action != nil {
+		if c.Action != nil && noExtraArgs {
 			return c.Action(c, ctx)
 		}
 
@@ -143,14 +158,18 @@ func (c *Command) Execute(ctx *Context) error {
 			sc := c.SubCommands[ctx.Args[ctx.Index]]
 
 			if sc == nil {
-				return errors.New("Invalid command '" +
-					ctx.Args[ctx.Index] + "'")
+				return errors.New("Invalid command '" + ctx.Args[ctx.Index] + "'")
 			}
 
 			return sc.Execute(ctx)
 		}
 	}
 	c.printUsage()
+	// Extra input after the command is an error
+	if c.isValid() && !noExtraArgs {
+		fmt.Print("\n-----\n")
+		return fmt.Errorf("Unrecognized input: %v\n", ctx.Args[ctx.Index])
+	}
 
 	return nil
 }
@@ -161,9 +180,9 @@ func (c *Command) parseFlags(ctx *Context) error {
 		ctx.Index += c.flags.NFlag()
 	}
 
-	if c.SubCommands == nil && len(c.flags.Args()) > 0 {
+	if c.SubCommands == nil && c.hasFlags() {
 		c.printUsage()
-		fmt.Print("\n")
+		fmt.Print("\n-----\n")
 		return fmt.Errorf("Unrecognized input: %s\n", c.flags.Args())
 	}
 	return nil
