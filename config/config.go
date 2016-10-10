@@ -15,7 +15,7 @@ type iobeamConfig struct {
 
 const (
 	// CLIVersion is the version of the CLI.
-	CLIVersion = "0.9.0"
+	CLIVersion = "0.9.1"
 	// DefaultApiServer is the default iobeam server.
 	DefaultApiServer = "https://api.iobeam.com"
 
