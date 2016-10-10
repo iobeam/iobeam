@@ -20,6 +20,13 @@ var baseApiPath = make(map[string]string)
 // flag values.
 type setFlags map[string]struct{}
 
+var helpFlags = map[string]bool{
+	"-h":     true,
+	"-help":  true,
+	"--help": true,
+	"--h":    true,
+}
+
 func (i *setFlags) String() string {
 	return ""
 }
@@ -78,7 +85,7 @@ func (c *Command) NewFlagSet(name string) *flag.FlagSet {
 }
 
 func (c *Command) hasFlags() bool {
-	return c.flags != nil && len(c.flags.Args()) > 0
+	return c.flags != nil
 }
 
 func (c *Command) printUsage() {
@@ -146,7 +153,7 @@ func (c *Command) Execute(ctx *Context) error {
 	// is true. If there are no flags associated with command, make sure
 	// the actionable command is the last arg.
 	noExtraArgs := true
-	if c.flags == nil {
+	if !c.hasFlags() {
 		noExtraArgs = ctx.Index == len(ctx.Args)
 	}
 	if c.isValid() {
@@ -166,7 +173,7 @@ func (c *Command) Execute(ctx *Context) error {
 	}
 	c.printUsage()
 	// Extra input after the command is an error
-	if c.isValid() && !noExtraArgs {
+	if c.isValid() && !noExtraArgs && !helpFlags[ctx.Args[ctx.Index]] {
 		fmt.Print("\n-----\n")
 		return fmt.Errorf("Unrecognized input: %v\n", ctx.Args[ctx.Index])
 	}
@@ -180,7 +187,7 @@ func (c *Command) parseFlags(ctx *Context) error {
 		ctx.Index += c.flags.NFlag()
 	}
 
-	if c.SubCommands == nil && c.hasFlags() {
+	if c.SubCommands == nil && c.hasFlags() && len(c.flags.Args()) > 0 {
 		c.printUsage()
 		fmt.Print("\n-----\n")
 		return fmt.Errorf("Unrecognized input: %s\n", c.flags.Args())
